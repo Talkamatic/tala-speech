@@ -1,0 +1,6 @@
+{
+    "TDM_ENDPOINT": "$TDM_ENDPOINT",
+    "AZURE_KEY": "$AZURE_KEY",
+    "TTS_VOICE": "$TTS_VOICE",
+    "ASR_LANGUAGE": "$ASR_LANGUAGE"
+}

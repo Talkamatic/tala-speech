@@ -1,9 +1,10 @@
 import { MachineConfig, actions, AssignAction } from "xstate";
+import Config from './config.json'
 
 const { send, assign, choose } = actions;
 
 
-const tdmEndpoint = process.env.REACT_APP_TDM_ENDPOINT || "https://sourdough-for-dummies-orchestration-pipeline.eu2.ddd.tala.cloud/interact"
+const tdmEndpoint = Config.TDM_ENDPOINT || "https://sourdough-for-dummies-orchestration-pipeline.eu2.ddd.tala.cloud/interact"
 const tdmSession = {
     "session": {
         "my_frontend": {

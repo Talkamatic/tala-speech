@@ -3,11 +3,12 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { Machine, assign, actions, State } from "xstate";
 import { useMachine, asEffect } from "@xstate/react";
-import { inspect } from "@xstate/inspect";
 import { tdmDmMachine } from "./tdmClient";
 
 import createSpeechRecognitionPonyfill from 'web-speech-cognitive-services/lib/SpeechServices/SpeechToText'
 import createSpeechSynthesisPonyfill from 'web-speech-cognitive-services/lib/SpeechServices/TextToSpeech';
+
+import Config from './config.json'
 
 let dm = tdmDmMachine
 
@@ -15,11 +16,6 @@ const { send, cancel } = actions
 
 const TOKEN_ENDPOINT = 'https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken';
 const REGION = 'northeurope';
-
-inspect({
-    url: "https://statecharts.io/inspect",
-    iframe: false
-});
 
 const defaultPassivity = 10
 
@@ -95,8 +91,8 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                 context.tts.cancel()
                                 const voices = context.tts.getVoices();
                                 let voiceRe = RegExp("en-US", 'u')
-                                if (process.env.REACT_APP_TTS_VOICE) {
-                                    voiceRe = RegExp(process.env.REACT_APP_TTS_VOICE, 'u')
+                                if (Config.TTS_VOICE) {
+                                    voiceRe = RegExp(Config.TTS_VOICE, 'u')
                                 }
                                 const voice = voices.find((v: any) => voiceRe.test(v.name))!
                                 if (voice) {
@@ -261,7 +257,6 @@ const FigureButton = (props: Props): JSX.Element => {
 
 function App() {
     const [current, send] = useMachine(machine, {
-        devTools: true,
         actions: {
             recStart: asEffect((context) => {
                 context.asr.start()
@@ -293,7 +288,7 @@ function App() {
                             }
                         });
                 context.asr = new SpeechRecognition()
-                context.asr.lang = process.env.REACT_APP_ASR_LANGUAGE || 'en-US'
+                context.asr.lang = Config.ASR_LANGUAGE || 'en-US'
                 context.asr.continuous = true
                 context.asr.interimResults = true
                 context.asr.onresult = function(event: any) {
@@ -344,7 +339,7 @@ const getAuthorizationToken = () => (
     fetch(new Request(TOKEN_ENDPOINT, {
         method: 'POST',
         headers: {
-            'Ocp-Apim-Subscription-Key': process.env.REACT_APP_SUBSCRIPTION_KEY!
+            'Ocp-Apim-Subscription-Key': Config.AZURE_KEY!
         },
     })).then(data => data.text()))
 
