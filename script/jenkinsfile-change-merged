@@ -27,7 +27,7 @@ pipeline {
                     ],
                     compareType: 'PLAIN',
                     disableStrictForbiddenFileVerification: false,
-                    pattern: 'speechstate'
+                    pattern: 'tala-speech'
                 ]
             ],
             serverName: 'Talkamatic',
@@ -67,7 +67,7 @@ pipeline {
                         submoduleCfg: [],
                         userRemoteConfigs: [[
                             credentialsId: 'jenkinsatgerrit',
-                            url: 'ssh://jenkins@gerrit.talkamatic.se:29418/speechstate'
+                            url: 'ssh://jenkins@gerrit.talkamatic.se:29418/tala-speech'
                         ]]
                     ])
                     env.COMMIT_TO_RELEASE = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
@@ -77,18 +77,18 @@ pipeline {
 
         stage('build image') {
             steps {
-                sh "docker build . --pull --tag talkamatic/speechstate:${env.COMMIT_TO_RELEASE}"
+                sh "docker build . --pull --tag eu.gcr.io/ipv6-art-project/tala-speech:${env.COMMIT_TO_RELEASE}"
             }
         }
 
-        stage('push image') {
+        stage('docker: push latest') {
             steps {
-                withCredentials([[$class: 'StringBinding', credentialsId: 'dockerhubcred', variable: 'pw']]) {
-                    sh "echo ${pw} | docker login -u zigit --password-stdin"
+                script {
+                    docker.withRegistry('https://eu.gcr.io', 'gcr:ipv6-google-container-registry') {
+                        sh "docker tag eu.gcr.io/ipv6-art-project/tala-speech:${env.COMMIT_TO_RELEASE} eu.gcr.io/ipv6-art-project/tala-speech:latest"
+                        sh "docker push eu.gcr.io/ipv6-art-project/tala-speech:latest"
+                    }
                 }
-                sh "docker push talkamatic/speechstate:${env.COMMIT_TO_RELEASE}"
-                sh "docker tag talkamatic/speechstate:${env.COMMIT_TO_RELEASE} talkamatic/speechstate:latest"
-                sh "docker push talkamatic/speechstate:latest"
             }
         }
 
@@ -98,7 +98,7 @@ pipeline {
                     [
                         $class: 'StringParameterValue',
                         name: 'IMAGE',
-                        value: "speechstate"
+                        value: "tala-speech"
                     ],
                     [
                         $class: 'StringParameterValue',
