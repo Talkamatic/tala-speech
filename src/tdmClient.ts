@@ -5,21 +5,10 @@ const { send, assign, choose } = actions;
 
 
 const tdmEndpoint = Config.TDM_ENDPOINT || "https://sourdough-for-dummies-orchestration-pipeline.eu2.ddd.tala.cloud/interact"
-const tdmSession = {
-    "session": {
-        "my_frontend": {
-            "user_id": "tala-speech",
-            "position": {
-                "latitude": "57.699188",
-                "longitude": "11.948313"
-            }
-        }
-    }
-}
 
 const startSession = {
     "version": "3.3",
-    "session": tdmSession,
+    "session": { "device_id": "tala-speech" },
     "request": {
         "start_session": {}
     }
