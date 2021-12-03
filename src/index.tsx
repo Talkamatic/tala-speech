@@ -17,7 +17,6 @@ const { send, cancel } = actions
 const TOKEN_ENDPOINT = 'https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken';
 const REGION = 'northeurope';
 
-const defaultPassivity = 5
 
 const machine = Machine<SDSContext, any, SDSEvent>({
     id: 'root',
@@ -134,7 +133,8 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         },
                         RECOGNISED: 'idle',
                         SELECT: 'idle',
-                        CLICK: '.pause'
+                        CLICK: '.pause',
+                        TIMEOUT: '#root.asrtts.idle'
                     },
                     states: {
                         noinput: {
@@ -143,12 +143,11 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                 send(
                                     { type: 'TIMEOUT' },
                                     {
-                                        delay: (context) => (1000 * (context.tdmPassivity || defaultPassivity)),
+                                        delay: (context) => (1000 * context.tdmPassivity),
                                         id: 'timeout'
                                     }
                                 )],
                             on: {
-                                TIMEOUT: '#root.asrtts.idle',
                                 STARTSPEECH: 'inprogress'
                             },
                             exit: cancel('timeout')
@@ -165,7 +164,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     }
                 },
                 speaking: {
-                    entry: 'ttsStart',
+                    entry: ['recStop', 'ttsStart'],
                     on: {
                         ENDSPEECH: 'idle',
                         SELECT: 'idle',
@@ -266,7 +265,7 @@ function App() {
                 /* console.log('Ready to receive a voice input.'); */
             }),
             recStop: asEffect((context) => {
-                context.asr.abort()
+                context.asr.abort?.()
                 /* console.log('Recognition stopped.'); */
             }),
             ttsStart: asEffect((context) => {
