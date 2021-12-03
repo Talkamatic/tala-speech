@@ -297,7 +297,7 @@ function App() {
                         send({
                             type: "ASRRESULT", value:
                                 [{
-                                    "utterance": result[0].transcript,
+                                    "utterance": result[0].transcript.replace(/\.$/, ''),
                                     "confidence": result[0].confidence
                                 }]
                         })
