@@ -8,7 +8,7 @@ const tdmEndpoint = Config.TDM_ENDPOINT || "https://sourdough-for-dummies-orches
 const tdmSession = {
     "session": {
         "my_frontend": {
-            "user_id": "speechstate",
+            "user_id": "tala-speech",
             "position": {
                 "latitude": "57.699188",
                 "longitude": "11.948313"
@@ -25,17 +25,17 @@ const startSession = {
     }
 }
 
-const passivity = (sessionId: string) => ({
+const passivity = (sessionObject: any) => ({
     "version": "3.3",
-    "session": { "session_id": sessionId },
+    "session": sessionObject,
     "request": {
         "passivity": {}
     }
 })
 
-const nlInput = (sessionId: string, hypotheses: Hypothesis[]) => ({
+const nlInput = (sessionObject: any, hypotheses: Hypothesis[]) => ({
     "version": "3.3",
-    "session": { "session_id": sessionId },
+    "session": sessionObject,
     "request": {
         "natural_language_input": {
             "modality": "speech",
@@ -44,9 +44,9 @@ const nlInput = (sessionId: string, hypotheses: Hypothesis[]) => ({
     }
 })
 
-const hapticInput = (sessionId: string, expression: string) => ({
+const hapticInput = (sessionObject: any, expression: string) => ({
     "version": "3.3",
-    "session": { "session_id": sessionId },
+    "session": sessionObject,
     "request": {
         "semantic_input": {
             "interpretations": [{
@@ -70,7 +70,7 @@ const tdmRequest = (requestBody: any) => (fetch(new Request(tdmEndpoint, {
 })).then(data => data.json()))
 
 const tdmAssign: AssignAction<SDSContext, any> = assign({
-    sessionId: (_ctx, event) => event.data.session.session_id,
+    sessionObject: (_ctx, event) => event.data.session,
     tdmAll: (_ctx, event) => event.data,
     tdmUtterance: (_ctx, event) => event.data.output.utterance,
     tdmVisualOutputInfo: (_ctx, event) => (event.data.output.visual_output || [{}])[0].visual_information,
@@ -157,7 +157,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 next: {
                     invoke: {
                         id: "nlInput",
-                        src: (context, _evt) => tdmRequest(nlInput(context.sessionId, context.recResult)),
+                        src: (context, _evt) => tdmRequest(nlInput(context.sessionObject, context.recResult)),
                         onDone: [
                             {
                                 target: 'utter',
@@ -174,7 +174,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 nextHaptic: {
                     invoke: {
                         id: "hapticInput",
-                        src: (context, _evt) => tdmRequest(hapticInput(context.sessionId, context.hapticInput)),
+                        src: (context, _evt) => tdmRequest(hapticInput(context.sessionObject, context.hapticInput)),
                         onDone: [
                             {
                                 target: 'utter',
@@ -191,7 +191,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 passivity: {
                     invoke: {
                         id: "passivity",
-                        src: (context, _evt) => tdmRequest(passivity(context.sessionId)),
+                        src: (context, _evt) => tdmRequest(passivity(context.sessionObject)),
                         onDone: [
                             {
                                 target: 'utter',

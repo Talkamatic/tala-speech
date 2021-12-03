@@ -28,7 +28,7 @@ interface SDSContext {
     ttsAgenda: string;
     query: string;
     snippet: string;
-    sessionId: string;
+    sessionObject: any;
     tdmAll: any;
     tdmUtterance: string;
     tdmPassivity: number;
