@@ -134,8 +134,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                                             cond: (context) =>
                                                 context.tdmActions.some(
                                                     (item: any) =>
-                                                        ['EndSession', 'EndConversation'].
-                                                            includes(item.name))
+                                                        ['EndSession', 'EndConversation'].includes(item.name))
                                         },
                                         { target: 'ask' }
                                     ]
