@@ -324,7 +324,10 @@ function App() {
     switch (true) {
         default:
             return (
-                <div className="App">
+                <div className="App" style={{
+                    backgroundImage: `url(${(Config as any).BACKGROUND || ''})`,
+                    backgroundSize: `auto 100%`
+                }}>
                     <ReactiveButton state={current} alternative={{}} onClick={() => send('CLICK')} />
                     <div className="select-wrapper">
                         <div className="select">
