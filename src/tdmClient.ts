@@ -136,6 +136,10 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                                                     (item: any) =>
                                                         ['EndSession', 'EndConversation'].includes(item.name))
                                         },
+                                        {
+                                            target: '#root.dm.tdm.passivity',
+                                            cond: (context) => context.tdmPassivity === 0
+                                        },
                                         { target: 'ask' }
                                     ]
 

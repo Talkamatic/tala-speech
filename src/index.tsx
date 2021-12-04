@@ -181,7 +181,8 @@ const machine = Machine<SDSContext, any, SDSEvent>({
         actions: {
             recLogResult: (context: SDSContext) => {
                 /* context.recResult = event.recResult; */
-                console.log('U>', context.recResult[0]["utterance"], context.recResult[0]["confidence"]);
+                console.log('U>', context.recResult[0]["utterance"],
+                    { "confidence": context.recResult[0]["confidence"] });
             },
             logIntent: (context: SDSContext) => {
                 /* context.nluData = event.data */
@@ -225,6 +226,7 @@ const ReactiveButton = (props: Props): JSX.Element => {
             circleClass = "circle-click"
             break;
         default:
+            circleClass = "circle-click"
             promptText = promptText || '\u00A0'
     }
     return (
@@ -270,7 +272,7 @@ function App() {
             }),
             ttsStart: asEffect((context) => {
                 const utterance = new context.ttsUtterance(context.ttsAgenda);
-                console.log("S>", context.ttsAgenda)
+                console.log("S>", context.ttsAgenda, { "passivity": context.tdmPassivity })
                 utterance.voice = context.voice
                 utterance.onend = () => send('ENDSPEECH')
                 context.tts.speak(utterance)
