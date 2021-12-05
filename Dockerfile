@@ -12,7 +12,7 @@ RUN jq 'to_entries | map_values({ (.key) : ("$" + .key) }) | reduce .[] as $item
 RUN yarn build
 
 FROM nginx:1.17
-ENV JSFOLDER=/usr/share/nginx/html/static/js/*.js
+ENV JSFOLDER=/usr/share/nginx/html/static/js
 COPY ./start-nginx.sh /usr/bin/start-nginx.sh
 WORKDIR /usr/share/nginx/html
 COPY --from=0 /usr/src/app/build .
