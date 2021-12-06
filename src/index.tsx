@@ -17,6 +17,7 @@ const { send, cancel } = actions
 const TOKEN_ENDPOINT = 'https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken';
 const REGION = 'northeurope';
 
+const defaultPassivity = 5
 
 const machine = Machine<SDSContext, any, SDSEvent>({
     id: 'root',
@@ -143,7 +144,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                 send(
                                     { type: 'TIMEOUT' },
                                     {
-                                        delay: (context) => (1000 * context.tdmPassivity),
+                                        delay: (context) => (1000 * (context.tdmPassivity ?? defaultPassivity)),
                                         id: 'timeout'
                                     }
                                 )],
