@@ -24,11 +24,41 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>React App</title>
+    <title>Tala Speech</title>
   </head>
   <body>
+    <div class="chapterbuttons" id="cbs"></div>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+    <script>
+      console.log(window.availableDDDs);
+      
+      const listener = (event) => {
+          window.availableDDDs = event.detail
+	  for (let [i, pg] of window.availableDDDs.entries()) {
+	      console.log(pg);
+	      btn = document.createElement("button");
+	      btn.id = `cb${i}`;
+              btn.onclick =  function() { turnPage({"pageNumber": i, "dddName": pg});}
+	      btn.textContent = pg;
+	      document.getElementById("cbs").appendChild(btn)
+          }
+      };
+      window.addEventListener('setAvailableDDDs', listener);
+
+      
+      let page = 0;
+      const turnPage = (segment) => {
+	  console.log(segment)
+	  if (document.getElementById(`cb${page}`) !== null) {
+	      document.getElementById(`cb${page}`).style.fontWeight = 'normal'
+              }
+	  page = segment.pageNumber;
+	  document.getElementById(`cb${page}`).style.fontWeight = 'bold'
+	  event = new CustomEvent('turnpage', { detail: segment });
+	  window.dispatchEvent(event);
+      }
+    </script>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

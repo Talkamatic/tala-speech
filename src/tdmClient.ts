@@ -4,13 +4,11 @@ import Config from './config.json'
 const { send, assign, choose } = actions;
 
 
-const tdmEndpoint = Config.TDM_ENDPOINT || "https://sourdough-for-dummies-orchestration-pipeline.eu2.ddd.tala.cloud/interact"
-
 const startSession = {
     "version": "3.3",
     "session": { "device_id": "tala-speech" },
     "request": {
-        "start_session": {}
+        "start_session": {},
     }
 }
 
@@ -22,13 +20,35 @@ const passivity = (sessionObject: any) => ({
     }
 })
 
-const nlInput = (sessionObject: any, hypotheses: Hypothesis[]) => ({
+const nlInput = (sessionObject: any, ddd: string, moves: any, hypotheses: Hypothesis[]) => ({
     "version": "3.3",
-    "session": sessionObject,
+    "session": {
+        ...sessionObject,
+        "ddd": ddd,
+        "moves": moves
+    },
     "request": {
         "natural_language_input": {
             "modality": "speech",
             "hypotheses": hypotheses
+        }
+    }
+})
+
+const segmentInput = (sessionObject: any, ddd: string) => ({
+    "version": "3.3",
+    "session": sessionObject,
+    "request": {
+        "semantic_input": {
+            "interpretations": [{
+                "modality": "other",
+                "moves": [{
+                    "ddd": ddd,
+                    "perception_confidence": 1,
+                    "understanding_confidence": 1,
+                    "semantic_expression": "request(top)"
+                }]
+            }]
         }
     }
 })
@@ -50,7 +70,8 @@ const hapticInput = (sessionObject: any, expression: string) => ({
     }
 })
 
-const tdmRequest = (requestBody: any) => (fetch(new Request(tdmEndpoint, {
+
+const tdmRequest = (requestBody: any) => (fetch(new Request(Config.TDM_ENDPOINT, {
     method: 'POST',
     headers: {
         'Content-type': 'application/json'
@@ -61,6 +82,9 @@ const tdmRequest = (requestBody: any) => (fetch(new Request(tdmEndpoint, {
 const tdmAssign: AssignAction<SDSContext, any> = assign({
     sessionObject: (_ctx, event) => event.data.session,
     tdmAll: (_ctx, event) => event.data,
+    tdmOutput: (_ctx, event) => event.data.output,
+    tdmActiveDDD: (_ctx, event) => event.data.context.active_ddd,
+    tdmAvailableDDDs: (_ctx, event) => event.data.context.available_ddds,
     tdmUtterance: (_ctx, event) => event.data.output.utterance,
     tdmVisualOutputInfo: (_ctx, event) => (event.data.output.visual_output || [{}])[0].visual_information,
     tdmExpectedAlternatives: (_ctx, event) => (event.data.context.expected_input || {}).alternatives,
@@ -77,12 +101,35 @@ const maybeAlternatives = choose<SDSContext, SDSEvent>([
 ])
 
 export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
-    initial: 'idle',
+    initial: 'getPages',
+    on: {
+        'TURNPAGE': {
+            actions: [assign({ segment: (_ctx, event) => event.value })]
+        }
+    },
     states: {
+        fail: {},
+        getPages: {
+            invoke: {
+                id: "startSession",
+                src: (_ctx, _evt) => tdmRequest(startSession),
+                onDone: [
+                    {
+                        target: 'idle',
+                        actions: [tdmAssign, 'setAvailableDDDs'],
+                        cond: (_ctx, event) => event.data.output
+                    },
+                    {
+                        target: 'fail'
+                    }
+                ],
+                onError: { target: 'fail' }
+            }
+        },
         idle: {
             on: {
-                CLICK: 'init',
-            }
+                CLICK: 'init'
+            },
         },
         init: {
             on: {
@@ -96,6 +143,23 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                     invoke: {
                         id: "startSession",
                         src: (_ctx, _evt) => tdmRequest(startSession),
+                        onDone: [
+                            {
+                                target: 'selectSegment',
+                                actions: tdmAssign,
+                                cond: (_ctx, event) => event.data.output
+                            },
+                            {
+                                target: 'fail'
+                            }
+                        ],
+                        onError: { target: 'fail' }
+                    }
+                },
+                selectSegment: {
+                    invoke: {
+                        id: "segmentInput",
+                        src: (context, _evt) => tdmRequest(segmentInput(context.sessionObject, context.segment.dddName)),
                         onDone: [
                             {
                                 target: 'utter',
@@ -134,7 +198,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                                             cond: (context) =>
                                                 context.tdmActions.some(
                                                     (item: any) =>
-                                                        ['EndSession', 'EndConversation'].includes(item.name))
+                                                        ['EndOfSection', 'EndSession', 'EndConversation'].includes(item.name))
                                         },
                                         {
                                             target: '#root.dm.tdm.passivity',
@@ -153,7 +217,11 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 next: {
                     invoke: {
                         id: "nlInput",
-                        src: (context, _evt) => tdmRequest(nlInput(context.sessionObject, context.recResult)),
+                        src: (context, _evt) => tdmRequest(nlInput(
+                            context.sessionObject,
+                            context.tdmActiveDDD,
+                            context.tdmOutput.moves,
+                            context.recResult)),
                         onDone: [
                             {
                                 target: 'utter',

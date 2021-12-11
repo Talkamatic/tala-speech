@@ -9,6 +9,11 @@ interface Hypothesis {
     "confidence": number
 }
 
+interface Segment {
+    "pageNumber": number;
+    "dddName": string
+}
+
 interface MySpeechSynthesisUtterance extends SpeechSynthesisUtterance {
     new(s: string);
 }
@@ -31,15 +36,20 @@ interface SDSContext {
     sessionObject: any;
     tdmAll: any;
     tdmUtterance: string;
+    segment: Segment;
     tdmPassivity: number;
     tdmActions: any;
     tdmVisualOutputInfo: any;
     tdmExpectedAlternatives: any;
+    tdmOutput: any;
+    tdmActiveDDD: string;
+    tdmAvailableDDDs: string[];
     azureAuthorizationToken: string;
     audioCtx: any;
 }
 
 type SDSEvent =
+    | { type: 'TURNPAGE', value: Segment }
     | { type: 'TTS_READY' }
     | { type: 'TTS_ERROR' }
     | { type: 'CLICK' }
