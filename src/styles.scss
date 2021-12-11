@@ -25,6 +25,19 @@ html, body {
     height: 100vh;
 }
 
+.chapterbuttons {
+    display: flex;
+    flex-flow: row wrap;
+    margin: 10px;
+    button[id^="cb"] {
+	font-family: IBM Plex Mono, monospace;
+	padding: 10px;
+    }
+    button[class^="active-cb"] {
+	font-family: IBM Plex Mono, monospace;
+	padding: 10px;
+    }
+}
 .control {
     top: 70vh;
     margin-bottom: auto;
