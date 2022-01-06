@@ -16,6 +16,7 @@ const { send, cancel } = actions
 
 const TOKEN_ENDPOINT = 'https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken';
 const REGION = 'northeurope';
+const PAUSE_UTTERANCES = ['Vänta lite', 'Väntar lite', 'Väntar', 'Vänta'];
 
 const defaultPassivity = 5
 
@@ -123,15 +124,21 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     initial: 'noinput',
                     exit: 'recStop',
                     on: {
-                        ASRRESULT: {
-                            actions: ['recLogResult',
-                                assign((_context, event) => {
-                                    return {
-                                        recResult: event.value
-                                    }
-                                })],
-                            target: '.match'
-                        },
+                        ASRRESULT: [
+                            {
+                                target: '.pause',
+                                cond: (_context, event) => PAUSE_UTTERANCES.includes(event.value[0].utterance)
+                            },
+                            {
+                                actions: ['recLogResult',
+                                    assign((_context, event) => {
+                                        return {
+                                            recResult: event.value
+                                        }
+                                    })],
+                                target: '.match'
+                            },
+                        ],
                         RECOGNISED: 'idle',
                         SELECT: 'idle',
                         CLICK: '.pause',
