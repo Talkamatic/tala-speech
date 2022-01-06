@@ -303,7 +303,14 @@ function App() {
                 /* console.log('Recognition stopped.'); */
             }),
             ttsStart: asEffect((context) => {
-                const utterance = new context.ttsUtterance(context.ttsAgenda);
+                let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.voice.name}">`
+                if ((Config as any).TTS_LEXICON) {
+                    if ((Config as any).TTS_LEXICON !== '$TTS_LEXICON')
+                        content = content + `<lexicon uri="${(Config as any).TTS_LEXICON}"/>`
+                }
+                content = content + `${context.ttsAgenda}</voice></speak>`
+                if (context.ttsAgenda === ("" || " ")) { content = "" };
+                const utterance = new context.ttsUtterance(content);
                 console.log("S>", context.ttsAgenda, { "passivity": context.tdmPassivity })
                 utterance.voice = context.voice
                 utterance.onend = () => send('ENDSPEECH')
