@@ -19,6 +19,7 @@ interface MySpeechRecognition extends SpeechRecognition {
 
 interface SDSContext {
     asr: SpeechRecognition;
+    fakeInterim: SpeechRecognitionAlternative[];
     tts: SpeechSynthesis;
     voice: SpeechSynthesisVoice;
     ttsUtterance: MySpeechSynthesisUtterance;

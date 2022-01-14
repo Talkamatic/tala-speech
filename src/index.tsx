@@ -296,16 +296,29 @@ function App() {
                 context.asr.lang = Config.ASR_LANGUAGE || 'en-US'
                 context.asr.continuous = true
                 context.asr.interimResults = true
+                context.fakeInterim = []
                 context.asr.onresult = function(event: any) {
                     var result = event.results[0]
                     if (result.isFinal) {
-                        send({
-                            type: "ASRRESULT", value:
-                                [{
-                                    "utterance": result[0].transcript.replace(/\.$/, ''),
-                                    "confidence": result[0].confidence
-                                }]
-                        })
+                        context.fakeInterim = context.fakeInterim.concat(event.results[0][0])
+                        console.log(context.fakeInterim)
+                        if (result[0].transcript.endsWith('och')) {
+                            context.asr.start()
+                        } else {
+                            const res = context.fakeInterim.reduce((
+                                prev: SpeechRecognitionAlternative,
+                                curr: SpeechRecognitionAlternative) => ({
+                                    transcript: prev.transcript + " " + curr.transcript,
+                                    confidence: (prev.confidence + curr.confidence) / 2  // (not real average)
+                                }))
+                            send({
+                                type: "ASRRESULT", value:
+                                    [{
+                                        "utterance": res.transcript.replace(/\.$/, ''),
+                                        "confidence": res.confidence
+                                    }]
+                            })
+                        }
                     } else {
                         send({ type: "STARTSPEECH" });
                     }
