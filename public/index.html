@@ -31,12 +31,9 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script>
-      console.log(window.availableDDDs);
-      
       const listener = (event) => {
           window.availableDDDs = event.detail
 	  for (let [i, pg] of window.availableDDDs.entries()) {
-	      console.log(pg);
 	      btn = document.createElement("button");
 	      btn.id = `cb${i}`;
               btn.onclick =  function() { turnPage({"pageNumber": i, "dddName": pg});}
@@ -49,7 +46,6 @@
       
       let page = 0;
       const turnPage = (segment) => {
-	  console.log(segment)
 	  if (document.getElementById(`cb${page}`) !== null) {
 	      document.getElementById(`cb${page}`).style.fontWeight = 'normal'
               }
