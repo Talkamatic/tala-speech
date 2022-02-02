@@ -134,6 +134,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
         init: {
             on: {
                 TTS_READY: 'tdm',
+                CLICK: 'tdm'
             }
         },
         tdm: {
