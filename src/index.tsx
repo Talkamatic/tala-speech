@@ -305,8 +305,9 @@ function App() {
             ttsStart: asEffect((context) => {
                 let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.voice.name}">`
                 if ((Config as any).TTS_LEXICON) {
-                    if ((Config as any).TTS_LEXICON !== '$TTS_LEXICON')
+                    if ((Config as any).TTS_LEXICON !== '$TTS_LEXICON') {
                         content = content + `<lexicon uri="${(Config as any).TTS_LEXICON}"/>`
+                    }
                 }
                 content = content + `${context.ttsAgenda}</voice></speak>`
                 if (context.ttsAgenda === ("" || " ")) { content = "" };
