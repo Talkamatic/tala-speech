@@ -247,7 +247,7 @@ const ReactiveButton = (props: Props): JSX.Element => {
             </figure>
             <div className="status"  {...props}>
                 <button type="button" className={circleClass}
-                    style={{}} {...props}>
+                    style={{}}>
                 </button>
                 <div className="status-text">
                     {promptText}
@@ -382,7 +382,8 @@ function App() {
                     backgroundImage: `url(${(Config as any).BACKGROUND || ''})`,
                     backgroundSize: `auto 100%`
                 }}>
-                    <ReactiveButton state={current} alternative={{}} onClick={() => send('CLICK')} />
+                    <ReactiveButton state={current} alternative={{}}
+                        onClick={() => send('CLICK')} />
                     <div className="select-wrapper">
                         <div className="select">
                             {figureButtons}
