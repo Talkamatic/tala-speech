@@ -245,7 +245,7 @@ const ReactiveButton = (props: Props): JSX.Element => {
                     <img src={promptImage}
                         alt={promptText} />}
             </figure>
-            <div className="status">
+            <div className="status"  {...props}>
                 <button type="button" className={circleClass}
                     style={{}} {...props}>
                 </button>
