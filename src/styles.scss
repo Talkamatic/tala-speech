@@ -12,8 +12,8 @@ $status-text: #063746;
 }
 
 html, body {
-    height: 100vh;
-    background-color: $pnk;
+    // height: 100vh;
+    // background-color: $pnk;
 }
 
 .App {
@@ -38,7 +38,7 @@ html, body {
 	padding: 10px;
     }
 }
-.control {
+.tala-speech-control {
     top: 70vh;
     margin-bottom: auto;
     position: relative;
@@ -46,15 +46,15 @@ html, body {
     display: flex;
     flex-flow: row wrap;
     align-items: left;
-    &:hover .circle-click  {
+    &:hover .tala-speech-circle-click  {
 	background: $yel;
     }
-    .prompt img  {
+    .tala-speech-prompt img  {
 	height: 40vh;
 	padding: 10px 25px;
 	text-align: left;
     }
-    .status {
+    .tala-speech-status {
 	// border: 1px solid #fff;
 	padding-left: 50px;
 	padding-right: 20px;
@@ -66,15 +66,15 @@ html, body {
 	color: $status-text;
 	z-index: 1;
 	&-talk {
-	    @extend .status;
+	    @extend .tala-speech-status;
 	}
-	.status-text {
+	.tala-speech-status-text {
 	    z-index: 5;
 	    position: relative;
 	    white-space: normal;
 	}
     }
-    .circle {
+    .tala-speech-circle {
 	position: absolute;
 	width: 80px;
 	height: 80px;
@@ -85,18 +85,18 @@ html, body {
 	background-color: #CD1515;
 	z-index: 0;
 	&-click {
-	    @extend .circle;
+	    @extend .tala-speech-circle;
 	    border: 0px;
 	    background-color: #fff;
 	}
 	&-speaking {
-	    @extend .circle;
+	    @extend .tala-speech-circle;
 	    border: 0px;
 	    background-color: #fff;
 	    animation: bordering 2s infinite;
 	}
 	&-recognising {
-	    @extend .circle;
+	    @extend .tala-speech-circle;
 	    animation: bordersize 2s infinite;
 	}
     }
@@ -124,7 +124,7 @@ html, body {
 }
 
 
-.flex {
+.tala-speech-flex {
     // border: 1px solid #ddd;
     margin: 0.5em;
     padding: 1em;
@@ -134,10 +134,10 @@ html, body {
     background: #fff;
     border: 2px solid $dark;
 }
-.flex:hover {
+.tala-speech-flex:hover {
     background: $yel;
 }
-img {
+.tala-speech-img img {
     object-fit: contain;
     width: 100%;
     border-radius: 5px;

@@ -219,37 +219,37 @@ const ReactiveButton = (props: Props): JSX.Element => {
             promptText = "Click to continue"
             break;
         case props.state.matches({ asrtts: { ready: 'recognising' } }):
-            circleClass = "circle-recognising"
+            circleClass = "tala-speech-circle-recognising"
             promptText = promptText || 'Listening...'
             break;
         case props.state.matches({ asrtts: { ready: 'speaking' } }):
-            circleClass = "circle-speaking"
+            circleClass = "tala-speech-circle-speaking"
             promptText = promptText || 'Speaking...'
             break;
         case props.state.matches({ dm: 'idle' }):
             promptText = "Click to start!"
-            circleClass = "circle-click"
+            circleClass = "tala-speech-circle-click"
             break;
         case props.state.matches({ dm: 'init' }):
             promptText = "Click to start!"
-            circleClass = "circle-click"
+            circleClass = "tala-speech-circle-click"
             break;
         default:
-            circleClass = "circle-click"
+            circleClass = "tala-speech-circle-click"
             promptText = promptText || '\u00A0'
     }
     return (
-        <div className="control">
-            <figure className="prompt">
+        <div className="tala-speech-control">
+            <figure className="tala-speech-prompt">
                 {promptImage &&
-                    <img src={promptImage}
+                    <img src={promptImage} className="tala-speech-img"
                         alt={promptText} />}
             </figure>
-            <div className="status"  {...props}>
+            <div className="tala-speech-status"  {...props}>
                 <button type="button" className={circleClass}
                     style={{}}>
                 </button>
-                <div className="status-text">
+                <div className="tala-speech-status-text">
                     {promptText}
                 </div>
             </div>
@@ -260,9 +260,11 @@ const FigureButton = (props: Props): JSX.Element => {
     const caption = props.alternative.find((el: any) => el.attribute === "name").value
     const imageSrc = (props.alternative.find((el: any) => el.attribute === "image") || {}).value
     return (
-        <figure className="flex" {...props}>
+        <figure className="tala-speech-flex" {...props}>
             {imageSrc &&
-                <img src={imageSrc} alt={caption} />}
+                <img className="tala-speech-img"
+                    src={imageSrc}
+                    alt={caption} />}
             <figcaption>{caption}</figcaption>
         </figure>
     )
