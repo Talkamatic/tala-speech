@@ -1,5 +1,4 @@
 import { MachineConfig, actions, AssignAction } from "xstate";
-import Config from './config.json'
 
 const { send, assign, choose } = actions;
 
@@ -71,7 +70,7 @@ const hapticInput = (sessionObject: any, expression: string) => ({
 })
 
 
-const tdmRequest = (requestBody: any) => (fetch(new Request(Config.TDM_ENDPOINT, {
+const tdmRequest = (endpoint: string, requestBody: any) => (fetch(new Request(endpoint, {
     method: 'POST',
     headers: {
         'Content-type': 'application/json'
@@ -112,7 +111,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
         getPages: {
             invoke: {
                 id: "startSession",
-                src: (_ctx, _evt) => tdmRequest(startSession),
+                src: (context, _evt) => tdmRequest(context.parameters.endpoint, startSession),
                 onDone: [
                     {
                         target: 'idle',
@@ -143,7 +142,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 start: {
                     invoke: {
                         id: "startSession",
-                        src: (_ctx, _evt) => tdmRequest(startSession),
+                        src: (context, _evt) => tdmRequest(context.parameters.endpoint, startSession),
                         onDone: [
                             {
                                 target: 'selectSegment',
@@ -160,7 +159,8 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 selectSegment: {
                     invoke: {
                         id: "segmentInput",
-                        src: (context, _evt) => tdmRequest(segmentInput(context.sessionObject, context.segment.dddName)),
+                        src: (context, _evt) => tdmRequest(context.parameters.endpoint,
+                            segmentInput(context.sessionObject, context.segment.dddName)),
                         onDone: [
                             {
                                 target: 'utter',
@@ -218,11 +218,11 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 next: {
                     invoke: {
                         id: "nlInput",
-                        src: (context, _evt) => tdmRequest(nlInput(
-                            context.sessionObject,
-                            context.tdmActiveDDD,
-                            context.tdmOutput.moves,
-                            context.recResult)),
+                        src: (context, _evt) => tdmRequest(context.parameters.endpoint,
+                            nlInput(context.sessionObject,
+                                context.tdmActiveDDD,
+                                context.tdmOutput.moves,
+                                context.recResult)),
                         onDone: [
                             {
                                 target: 'utter',
@@ -239,7 +239,8 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 nextHaptic: {
                     invoke: {
                         id: "hapticInput",
-                        src: (context, _evt) => tdmRequest(hapticInput(context.sessionObject, context.hapticInput)),
+                        src: (context, _evt) => tdmRequest(context.parameters.endpoint,
+                            hapticInput(context.sessionObject, context.hapticInput)),
                         onDone: [
                             {
                                 target: 'utter',
@@ -256,7 +257,8 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 passivity: {
                     invoke: {
                         id: "passivity",
-                        src: (context, _evt) => tdmRequest(passivity(context.sessionObject)),
+                        src: (context, _evt) => tdmRequest(context.parameters.endpoint,
+                            passivity(context.sessionObject)),
                         onDone: [
                             {
                                 target: 'utter',

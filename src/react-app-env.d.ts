@@ -14,6 +14,15 @@ interface Segment {
     "dddName": string
 }
 
+interface Settings {
+    endpoint: string;
+    ttsVoice: string;
+    ttsLexicon: string;
+    asrLanguage: string;
+    azureKey: string;
+}
+
+
 interface MySpeechSynthesisUtterance extends SpeechSynthesisUtterance {
     new(s: string);
 }
@@ -23,6 +32,7 @@ interface MySpeechRecognition extends SpeechRecognition {
 }
 
 interface SDSContext {
+    parameters: Settings;
     asr: SpeechRecognition;
     tts: SpeechSynthesis;
     voice: SpeechSynthesisVoice;
