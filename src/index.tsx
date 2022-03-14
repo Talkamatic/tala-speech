@@ -9,8 +9,6 @@ import { inspect } from "@xstate/inspect";
 import createSpeechRecognitionPonyfill from 'web-speech-cognitive-services/lib/SpeechServices/SpeechToText'
 import createSpeechSynthesisPonyfill from 'web-speech-cognitive-services/lib/SpeechServices/TextToSpeech';
 
-import Config from './config.json'
-
 let dm = tdmDmMachine
 
 const { send, cancel } = actions
@@ -80,7 +78,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         getToken: {
                             invoke: {
                                 id: "getAuthorizationToken",
-                                src: (_ctx, _evt) => getAuthorizationToken(),
+                                src: (context, _evt) => getAuthorizationToken(context.parameters.azureKey),
                                 onDone: {
                                     actions: [
                                         assign((_context, event) => { return { azureAuthorizationToken: event.data } }),
@@ -109,10 +107,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                     context.tts.addEventListener('voiceschanged', () => {
                                         context.tts.cancel()
                                         const voices = context.tts.getVoices();
-                                        let voiceRe = RegExp("en-US", 'u')
-                                        if (Config.TTS_VOICE) {
-                                            voiceRe = RegExp(Config.TTS_VOICE, 'u')
-                                        }
+                                        const voiceRe = RegExp(context.parameters.ttsVoice, 'u')
                                         const voice = voices.find((v: any) => voiceRe.test(v.name))!
                                         if (voice) {
                                             context.voice = voice
@@ -268,8 +263,18 @@ const FigureButton = (props: Props): JSX.Element => {
     )
 }
 
-const tdmContext = { segment: { pageNumber: 0, dddName: "cover" } }
-function App() {
+function App({ domElement }: any) {
+    const tdmContext = {
+        segment: { pageNumber: 0, dddName: "cover" },
+        parameters: {
+            endpoint: domElement.getAttribute("data-tdm-endpoint"),
+            ttsVoice: domElement.getAttribute("data-tts-voice") || "en-US",
+            ttsLexicon: domElement.getAttribute("data-tts-lexicon"),
+            asrLanguage: domElement.getAttribute("data-asr-language") || "en-US",
+            azureKey: domElement.getAttribute("data-azure-key"),
+        }
+    }
+
     const [current, send] = useMachine(machine.withContext({ ...machine.context, ...tdmContext }), {
         devTools: process.env.NODE_ENV === 'development' ? true : false,
         services: {
@@ -304,8 +309,8 @@ function App() {
             }),
             ttsStart: asEffect((context) => {
                 let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.voice.name}">`
-                if ((Config as any).TTS_LEXICON) {
-                    content = content + `<lexicon uri="${(Config as any).TTS_LEXICON}"/>`
+                if (context.parameters.ttsLexicon) {
+                    content = content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`
                 }
                 content = content + `${context.ttsAgenda}</voice></speak>`
                 if (context.ttsAgenda === ("" || " ")) { content = "" };
@@ -331,7 +336,7 @@ function App() {
                             }
                         });
                 context.asr = new SpeechRecognition()
-                context.asr.lang = Config.ASR_LANGUAGE || 'en-US'
+                context.asr.lang = context.parameters.asrLanguage
                 context.asr.continuous = true
                 context.asr.interimResults = true
                 context.fakeInterim = []
@@ -378,9 +383,9 @@ function App() {
     switch (true) {
         default:
             return (
-                <div className="App" style={{
-                    backgroundImage: `url(${(Config as any).BACKGROUND || ''})`,
-                    backgroundSize: `auto 100%`
+                <div className="App" id="App" style={{
+                    backgroundSize: `auto 100%`,
+                    backgroundRepeat: 'no-repeat'
                 }}>
                     <ReactiveButton state={current} alternative={{}}
                         onClick={() => send('CLICK')} />
@@ -395,16 +400,16 @@ function App() {
 
 };
 
-const getAuthorizationToken = () => (
+const getAuthorizationToken = (azureKey: string) => (
     fetch(new Request(TOKEN_ENDPOINT, {
         method: 'POST',
         headers: {
-            'Ocp-Apim-Subscription-Key': Config.AZURE_KEY!
+            'Ocp-Apim-Subscription-Key': azureKey
         },
     })).then(data => data.text()))
 
 
 const rootElement = document.getElementById("root");
 ReactDOM.render(
-    <App />,
+    <App domElement={rootElement} />,
     rootElement);
