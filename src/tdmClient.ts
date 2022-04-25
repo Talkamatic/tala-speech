@@ -52,7 +52,7 @@ const segmentInput = (sessionObject: any, ddd: string) => ({
     }
 })
 
-const hapticInput = (sessionObject: any, expression: string) => ({
+const hapticInput = (sessionObject: any, alternative: any) => ({
     "version": "3.3",
     "session": sessionObject,
     "request": {
@@ -62,7 +62,7 @@ const hapticInput = (sessionObject: any, expression: string) => ({
                 "moves": [{
                     "perception_confidence": 1,
                     "understanding_confidence": 1,
-                    "semantic_expression": expression
+                    "semantic_expression": alternative.semantic_expression
                 }]
             }]
         }
@@ -127,13 +127,21 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
         },
         idle: {
             on: {
-                CLICK: 'init'
+                CLICK: 'init',
+                SELECT: {
+                    actions: [send('CLICK'), assign({
+                        segment: (_ctx, event) => ({
+                            dddName: event.value.ddd,
+                            pageNumber: 0
+                        })
+                    })]
+                }
             },
         },
         init: {
             on: {
                 TTS_READY: 'tdm',
-                CLICK: 'tdm'
+                CLICK: 'tdm',
             }
         },
         tdm: {

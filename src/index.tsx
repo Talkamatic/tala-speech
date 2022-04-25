@@ -363,7 +363,7 @@ function App({ domElement }: any) {
                 <FigureButton state={current}
                     alternative={o.visual_information}
                     key={i}
-                    onClick={() => send({ type: 'SELECT', value: o.semantic_expression })} />
+                    onClick={() => send({ type: 'SELECT', value: o })} />
             )
         )
 
