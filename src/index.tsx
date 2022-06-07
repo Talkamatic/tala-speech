@@ -139,18 +139,20 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                             exit: 'recStop',
                             on: {
                                 ASRRESULT: {
-                                    actions: ['recLogResult',
+                                    actions: [
                                         assign((_context, event) => {
                                             return {
                                                 recResult: event.value
                                             }
-                                        })],
+                                        }),
+                                        cancel('completeTimeout')],
                                     target: '.match'
                                 },
-                                RECOGNISED: 'idle',
+                                RECOGNISED: { target: 'idle', actions: 'recLogResult' },
                                 SELECT: 'idle',
                                 CLICK: '.pause',
-                                TIMEOUT: '#root.asrtts.ready.idle'
+                                TIMEOUT: '#root.asrtts.ready.idle',
+                                STARTSPEECH: { target: '.inprogress', actions: cancel('completeTimeout') }
                             },
                             states: {
                                 noinput: {
@@ -164,13 +166,20 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                             }
                                         )],
                                     on: {
-                                        STARTSPEECH: 'inprogress'
                                     },
                                     exit: cancel('timeout')
                                 },
                                 inprogress: {
                                 },
                                 match: {
+                                    entry: send(
+                                        { type: 'RECOGNISED' },
+                                        {
+                                            delay: (context) => context.parameters.completeTimeout,
+                                            id: 'completeTimeout'
+                                        })
+                                },
+                                final: {
                                     entry: send('RECOGNISED'),
                                 },
                                 pause: {
@@ -272,6 +281,7 @@ function App({ domElement }: any) {
             ttsLexicon: domElement.getAttribute("data-tts-lexicon"),
             asrLanguage: domElement.getAttribute("data-asr-language") || "en-US",
             azureKey: domElement.getAttribute("data-azure-key"),
+            completeTimeout: Number(domElement.getAttribute("data-complete-timeout")) || 0,
         }
     }
 
@@ -340,20 +350,22 @@ function App({ domElement }: any) {
                 context.asr.continuous = true
                 context.asr.interimResults = true
                 context.asr.onresult = function(event: any) {
-                    var result = event.results[0]
-                    if (result.isFinal) {
+                    if (event.results[event.results.length - 1].isFinal) {
+                        const transcript = event.results.map((x: SpeechRecognitionResult) =>
+                            x[0].transcript.replace(/\.$/, '')).join(" ")
+                        const confidence = event.results.map((x: SpeechRecognitionResult) =>
+                            x[0].confidence).reduce((a: number, b: number) => a + b) / event.results.length
                         send({
                             type: "ASRRESULT", value:
                                 [{
-                                    "utterance": result[0].transcript.replace(/\.$/, ''),
-                                    "confidence": result[0].confidence
+                                    "utterance": transcript,
+                                    "confidence": confidence
                                 }]
                         })
                     } else {
-                        send({ type: "STARTSPEECH" });
+                        send({ type: "STARTSPEECH" })
                     }
                 }
-
             })
         }
     });
