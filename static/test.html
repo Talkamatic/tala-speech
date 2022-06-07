@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>SFI Mataffären Test</title>
+    <style>
+      .App {
+      height: 0 !important;
+      } 
+      .control {
+      position: absolute !important;
+      top: 10vh !important;
+      width: 50vw !important;
+      }
+      .select-wrapper {
+      top: 20vh !important;
+      }
+      .splide__slide img {
+      width: 100%;
+      height: auto;
+      }
+      .splide__pagination__page.is-active {
+      background: #063746 !important;
+      }
+    </style>
+</head>
+<body>
+    <div id="root"
+         data-azure-key="2e15e033f605414bbbfe26cb631ab755"
+         data-tdm-endpoint="https://sfi-mataffaren-orchestration-test-pipeline.eu2.ddd.tala.cloud/interact"
+         data-tts-voice="sv-SE, SofieNeural"
+         data-asr-language="sv-SE">
+    </div>
+
+<script>
+      const pages = [
+          "sfi_mataffaren"
+      ]
+      const turnPage = (segment) => {
+	  event = new CustomEvent('turnpage', { detail: segment });
+	  window.dispatchEvent(event);
+      }
+  const listener = (event) => {
+      window.availableDDDs = event.detail
+      turnPage({"pageNumber": 0, "dddName": pages[0]});
+  }
+  window.addEventListener('setAvailableDDDs', listener);
+</script>
+<noscript>You need to enable JavaScript to run this app.</noscript>
+<link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@3.6.12/dist/css/splide.min.css" rel="stylesheet"/>
+<link href="https://tala-speech.eu2.ddd.tala.cloud/index.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@3.6.12/dist/js/splide.min.js"
+        integrity="sha256-b/fLMBwSqO9vy/phDPv6OufPpR+VfUL+OsTEkJMPg+Q=" crossorigin="anonymous"></script>
+
+<script>
+      // document.addEventListener( 'DOMContentLoaded', function () {
+      // 	  new Splide( '#fullscreen-slider', {
+      // 		   perPage: 3,
+      // 	      rewind : true,).mount();
+      // 		    } );
+
+</script>
+<script src="https://tala-speech.eu2.ddd.tala.cloud/index.js"></script>
+
+</body>
+
+</html>
