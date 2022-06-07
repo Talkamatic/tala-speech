@@ -20,6 +20,7 @@ interface Settings {
     ttsLexicon: string;
     asrLanguage: string;
     azureKey: string;
+    completeTimeout: number;
 }
 
 
