@@ -203,14 +203,14 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                                 ENDSPEECH:
                                     [
                                         {
-                                            target: '#tala-speech.dm.init',
+                                            target: '#root.dm.init',
                                             cond: (context) =>
                                                 context.tdmActions.some(
                                                     (item: any) =>
                                                         ['EndOfSection', 'EndSession', 'EndConversation'].includes(item.name))
                                         },
                                         {
-                                            target: '#tala-speech.dm.tdm.passivity',
+                                            target: '#root.dm.tdm.passivity',
                                             cond: (context) => context.tdmPassivity === 0
                                         },
                                         { target: 'ask' }
