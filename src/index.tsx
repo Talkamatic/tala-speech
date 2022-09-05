@@ -28,7 +28,7 @@ if (process.env.NODE_ENV === 'development') {
 
 
 const machine = Machine<SDSContext, any, SDSEvent>({
-    id: 'root',
+    id: 'tala-speech',
     type: 'parallel',
     invoke: {
         src: 'checkForPage',
@@ -151,7 +151,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                 RECOGNISED: { target: 'idle', actions: 'recLogResult' },
                                 SELECT: 'idle',
                                 CLICK: '.pause',
-                                TIMEOUT: '#root.asrtts.ready.idle',
+                                TIMEOUT: '#tala-speech.asrtts.ready.idle',
                                 STARTSPEECH: { target: '.inprogress', actions: cancel('completeTimeout') }
                             },
                             states: {
