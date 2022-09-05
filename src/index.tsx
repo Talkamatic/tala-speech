@@ -408,7 +408,7 @@ const getAuthorizationToken = (azureKey: string) => (
     })).then(data => data.text()))
 
 
-const rootElement = document.getElementById("tala-speech");
+const rootElement = document.getElementById("root");
 ReactDOM.render(
     <App domElement={rootElement} />,
     rootElement);
