@@ -10,4 +10,5 @@ ENV JSFOLDER=/usr/share/nginx/html/static/js
 COPY ./start-nginx.sh /usr/bin/start-nginx.sh
 WORKDIR /usr/share/nginx/html
 COPY --from=0 /usr/src/app/dist .
+RUN sed -i '/^   }/i add_header Access-Control-Allow-Origin *;' /etc/nginx/conf.d/default.conf
 ENTRYPOINT [ "start-nginx.sh" ]
