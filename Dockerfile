@@ -1,14 +1,22 @@
-FROM node:17.6.0 AS ui-build
-WORKDIR /usr/src/app
+FROM node:18-alpine AS ui-build
+RUN apk add g++ make py3-pip
+WORKDIR /usr/web
 COPY package.json yarn.lock tsconfig.json ./
-COPY ./src src
 RUN yarn
+COPY ./src src
 RUN yarn build
 
-FROM nginx:1.17
-ENV JSFOLDER=/usr/share/nginx/html/static/js
-COPY ./start-nginx.sh /usr/bin/start-nginx.sh
-COPY ./default.conf /etc/nginx/conf.d/default.conf
-WORKDIR /usr/share/nginx/html
-COPY --from=0 /usr/src/app/dist .
-ENTRYPOINT [ "start-nginx.sh" ]
+
+FROM node:18-alpine
+WORKDIR /web
+COPY package.json yarn.lock tsconfig.json ./
+RUN yarn install --prod
+
+EXPOSE 3000
+
+COPY --from=ui-build /usr/web/dist ./dist
+COPY server ./server
+
+ENV NODE_ENV production
+
+CMD [ "node", "server/index.js" ]
