@@ -28,7 +28,7 @@
     "xstate": "^4.23.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "npx parcel src/index.tsx",
     "build": "parcel build src/index.tsx --no-source-maps",
     "serve": "npx serve dist/ -l 80",
     "test": "react-scripts test",

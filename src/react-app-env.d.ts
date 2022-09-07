@@ -21,6 +21,10 @@ interface Settings {
     asrLanguage: string;
     azureKey: string;
     completeTimeout: number;
+    i18nClickToStart: string;
+    i18nListening: string;
+    i18nSpeaking: string;
+    i18nClickToContinue: string;
 }
 
 
