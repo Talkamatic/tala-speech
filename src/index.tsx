@@ -220,22 +220,22 @@ const ReactiveButton = (props: Props): JSX.Element => {
         case props.state.matches({ asrtts: 'fail' }) || props.state.matches({ dm: 'fail' }):
             break;
         case props.state.matches({ asrtts: { ready: { recognising: 'pause' } } }):
-            promptText = "Click to continue"
+            promptText = props.state.context.parameters.i18nClickToContinue
             break;
         case props.state.matches({ asrtts: { ready: 'recognising' } }):
             circleClass = "circle-recognising"
-            promptText = promptText || 'Listening...'
+            promptText = promptText || props.state.context.parameters.i18nListening
             break;
         case props.state.matches({ asrtts: { ready: 'speaking' } }):
             circleClass = "circle-speaking"
-            promptText = promptText || 'Speaking...'
+            promptText = promptText || props.state.context.parameters.i18nSpeaking
             break;
         case props.state.matches({ dm: 'idle' }):
-            promptText = "Click to start!"
+            promptText = props.state.context.parameters.i18nClickToStart
             circleClass = "circle-click"
             break;
         case props.state.matches({ dm: 'init' }):
-            promptText = "Click to start!"
+            promptText = props.state.context.parameters.i18nClickToStart
             circleClass = "circle-click"
             break;
         default:
@@ -282,6 +282,10 @@ function App({ domElement }: any) {
             asrLanguage: domElement.getAttribute("data-asr-language") || "en-US",
             azureKey: domElement.getAttribute("data-azure-key"),
             completeTimeout: Number(domElement.getAttribute("data-complete-timeout")) || 0,
+            i18nClickToStart: domElement.getAttribute("data-i18n-click-to-start") || "Click to start!",
+            i18nListening: domElement.getAttribute("data-i18n-listening") || "Listening...",
+            i18nSpeaking: domElement.getAttribute("data-i18n-speaking") || "Speaking...",
+            i18nClickToContinue: domElement.getAttribute("data-i18n-click-to-continue") || "Click to continue"
         }
     }
 
