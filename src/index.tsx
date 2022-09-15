@@ -127,12 +127,19 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     states: {
                         idle: {
                             on: {
-                                LISTEN: 'recognising',
+                                LISTEN: 'waitForRecogniser',
                                 SPEAK: {
                                     target: 'speaking',
                                     actions: assign((_context, event) => { return { ttsAgenda: event.value } })
                                 }
                             },
+                        },
+                        waitForRecogniser: {
+                            entry: 'recStart',
+                            on: {
+                                ASR_START: 'recognising'
+                            }
+
                         },
                         recognising: {
                             initial: 'noinput',
@@ -157,7 +164,6 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                             states: {
                                 noinput: {
                                     entry: [
-                                        'recStart',
                                         send(
                                             { type: 'TIMEOUT' },
                                             {
@@ -184,7 +190,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                 },
                                 pause: {
                                     entry: 'recStop',
-                                    on: { CLICK: 'noinput' }
+                                    on: { CLICK: '#root.asrtts.ready.waitForRecogniser' }
                                 }
                             }
                         },
@@ -353,6 +359,9 @@ function App({ domElement }: any) {
                 context.asr.lang = context.parameters.asrLanguage
                 context.asr.continuous = true
                 context.asr.interimResults = true
+                context.asr.onstart = function(event: any) {
+                    send("ASR_START")
+                }
                 context.asr.onresult = function(event: any) {
                     if (event.results[event.results.length - 1].isFinal) {
                         const transcript = event.results.map((x: SpeechRecognitionResult) =>

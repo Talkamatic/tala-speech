@@ -70,6 +70,7 @@ type SDSEvent =
     | { type: 'CLICK' }
     | { type: 'SELECT', value: any }
     | { type: 'SHOW_ALTERNATIVES' }
+    | { type: 'ASR_START' }
     | { type: 'STARTSPEECH' }
     | { type: 'RECOGNISED' }
     | { type: 'ASRRESULT', value: Hypothesis[] }
