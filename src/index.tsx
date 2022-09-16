@@ -289,7 +289,7 @@ function App({ domElement }: any) {
         }
     }
 
-    const [current, send] = useMachine(machine.withContext({ ...machine.context, ...tdmContext }), {
+    const [current, send, service] = useMachine(machine.withContext({ ...machine.context, ...tdmContext }), {
         devTools: process.env.NODE_ENV === 'development' ? true : false,
         services: {
             checkForPage: () => (send) => {
@@ -328,7 +328,6 @@ function App({ domElement }: any) {
                 }
                 content = content + `${context.ttsAgenda}</voice></speak>`
                 if (context.ttsAgenda === ("" || " ")) { content = "" };
-                console.debug(content)
                 const utterance = new context.ttsUtterance(content);
                 console.log("S>", context.ttsAgenda, { "passivity": context.tdmPassivity })
                 utterance.voice = context.voice
@@ -373,6 +372,17 @@ function App({ domElement }: any) {
             })
         }
     });
+
+    React.useEffect(() => {
+        const subscription = service.subscribe(state => {
+            // simple state logging
+            const event = new CustomEvent<any>('talaSpeechState', { detail: state });
+            window.dispatchEvent(event);
+        });
+
+        return subscription.unsubscribe;
+    }, [service]);
+
     const figureButtons = (current.context.tdmExpectedAlternatives || []).filter((o: any) => o.visual_information)
         .map(
             (o: any, i: any) => (
