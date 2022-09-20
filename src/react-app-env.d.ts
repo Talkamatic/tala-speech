@@ -19,7 +19,7 @@ interface Settings {
     ttsVoice: string;
     ttsLexicon: string;
     asrLanguage: string;
-    azureKey: string;
+    azureKey?: string;
     completeTimeout: number;
     i18nClickToStart: string;
     i18nListening: string;

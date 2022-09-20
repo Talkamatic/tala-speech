@@ -61,24 +61,23 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         fail: {},
                         await: {
                             on: {
-                                CLICK: {
-                                    target: 'getToken',
-                                    actions: [
-                                        assign({
-                                            audioCtx: (_ctx) =>
-                                                new ((window as any).AudioContext || (window as any).webkitAudioContext)()
-                                        }),
-                                        (context) =>
-                                            navigator.mediaDevices.getUserMedia({ audio: true })
-                                                .then(function(stream) { context.audioCtx.createMediaStreamSource(stream) })
-                                    ]
-                                }
-                            }
+                                CLICK: [
+                                    {
+                                        target: 'getToken',
+                                        actions: 'createAudioContext',
+                                        cond: (context) => context.azureAuthorizationToken === undefined
+                                    },
+                                    {
+                                        target: 'ponyfillTTS',
+                                        actions: ['createAudioContext', 'ponyfillASR'],
+                                    }
+                                ]
+                            },
                         },
                         getToken: {
                             invoke: {
                                 id: "getAuthorizationToken",
-                                src: (context, _evt) => getAuthorizationToken(context.parameters.azureKey),
+                                src: (context, _evt) => getAuthorizationToken(context.parameters.azureKey!),
                                 onDone: {
                                     actions: [
                                         assign((_context, event) => { return { azureAuthorizationToken: event.data } }),
@@ -281,6 +280,7 @@ const FigureButton = (props: Props): JSX.Element => {
 function App({ domElement }: any) {
     const tdmContext = {
         segment: { pageNumber: 0, dddName: "cover" },
+        azureAuthorizationToken: domElement.getAttribute("data-azure-authorization-token"),
         parameters: {
             endpoint: domElement.getAttribute("data-tdm-endpoint"),
             ttsVoice: domElement.getAttribute("data-tts-voice") || "en-US",
@@ -311,6 +311,11 @@ function App({ domElement }: any) {
             },
         },
         actions: {
+            createAudioContext: (context: SDSContext) => {
+                context.audioCtx = new ((window as any).AudioContext || (window as any).webkitAudioContext)
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(function(stream) { context.audioCtx.createMediaStreamSource(stream) })
+            },
             setAvailableDDDs: asEffect((context) => {
                 const event = new CustomEvent<any>('setAvailableDDDs', { detail: context.tdmAvailableDDDs });
                 window.dispatchEvent(event);
@@ -431,7 +436,7 @@ const getAuthorizationToken = (azureKey: string) => (
     })).then(data => data.text()))
 
 
-const rootElement = document.getElementById("root");
+const rootElement = document.getElementById("tala-speech");
 ReactDOM.render(
     <App domElement={rootElement} />,
     rootElement);
