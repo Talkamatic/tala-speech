@@ -65,7 +65,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                     {
                                         target: 'getToken',
                                         actions: 'createAudioContext',
-                                        cond: (context) => context.azureAuthorizationToken === undefined
+                                        cond: (context) => context.parameters.azureKey !== null
                                     },
                                     {
                                         target: 'ponyfillTTS',
