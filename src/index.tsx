@@ -31,7 +31,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
     id: 'root',
     type: 'parallel',
     invoke: {
-        src: 'checkForPage',
+        src: 'getListeners',
     },
     states: {
         dm: {
@@ -298,15 +298,16 @@ function App({ domElement }: any) {
     const [current, send, service] = useMachine(machine.withContext({ ...machine.context, ...tdmContext }), {
         devTools: process.env.NODE_ENV === 'development' ? true : false,
         services: {
-            checkForPage: () => (send) => {
-                const listener = (e: any) => {
+            getListeners: () => (send) => {
+                const clickListener = () => send({ type: 'CLICK' });
+                const turnPageListener = (e: any) => {
                     send({ type: 'TURNPAGE', value: e.detail });
                 };
-
-                window.addEventListener('turnpage', listener);
-
+                window.addEventListener('talaClick', clickListener);
+                window.addEventListener('turnpage', turnPageListener);
                 return () => {
-                    window.removeEventListener('turnpage', listener);
+                    window.removeEventListener('talaClick', clickListener);
+                    window.removeEventListener('turnpage', turnPageListener);
                 };
             },
         },
