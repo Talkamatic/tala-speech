@@ -126,11 +126,16 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     states: {
                         idle: {
                             on: {
-                                LISTEN: 'waitForRecogniser',
-                                SPEAK: {
-                                    target: 'speaking',
-                                    actions: assign((_context, event) => { return { ttsAgenda: event.value } })
-                                }
+                                LISTEN: [
+                                    { target: 'waitForRecogniser' }],
+                                SPEAK: [
+                                    {
+                                        target: 'recognising.pause',
+                                        cond: 'emptyUtteranceAndPassivityNull'
+                                    }, {
+                                        target: 'speaking',
+                                        actions: assign((_context, event) => { return { ttsAgenda: event.value } })
+                                    }]
                             },
                         },
                         waitForRecogniser: {
@@ -189,7 +194,17 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                 },
                                 pause: {
                                     entry: 'recStop',
-                                    on: { CLICK: '#root.asrtts.ready.waitForRecogniser' }
+                                    on: {
+                                        CLICK:
+                                        {
+                                            target: '#root.asrtts.ready.waitForRecogniser',
+                                            actions: assign(() => {
+                                                return {
+                                                    tdmPassivity: defaultPassivity
+                                                }
+                                            }),
+                                        }
+                                    }
                                 }
                             }
                         },
@@ -297,6 +312,12 @@ function App({ domElement }: any) {
 
     const [current, send, service] = useMachine(machine.withContext({ ...machine.context, ...tdmContext }), {
         devTools: process.env.NODE_ENV === 'development' ? true : false,
+
+        guards: {
+            emptyUtteranceAndPassivityNull: (context, event) => {
+                return (event.value === '' && context.tdmPassivity === null)
+            }
+        },
         services: {
             getListeners: () => (send) => {
                 const clickListener = () => send({ type: 'CLICK' });
