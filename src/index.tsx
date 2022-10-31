@@ -198,11 +198,11 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                         CLICK:
                                         {
                                             target: '#root.asrtts.ready.waitForRecogniser',
-                                            actions: assign(() => {
+                                            actions: assign((_context, _event) => {
                                                 return {
                                                     tdmPassivity: defaultPassivity
                                                 }
-                                            }),
+                                            })
                                         }
                                     }
                                 }
@@ -223,7 +223,6 @@ const machine = Machine<SDSContext, any, SDSEvent>({
         },
     },
 });
-
 
 
 interface Props extends React.HTMLAttributes<HTMLElement> {
@@ -315,7 +314,10 @@ function App({ domElement }: any) {
 
         guards: {
             emptyUtteranceAndPassivityNull: (context, event) => {
-                return (event.value === '' && context.tdmPassivity === null)
+                if ("value" in event) {
+                    return (event.value === '' && context.tdmPassivity === null)
+                }
+                return false
             }
         },
         services: {
@@ -347,6 +349,7 @@ function App({ domElement }: any) {
                     { "confidence": context.recResult[0]["confidence"] });
             },
             recStart: asEffect((context) => {
+                (context.asr.grammars as any).phrases = context.tdmAsrHints
                 context.asr.start()
                 /* console.log('Ready to receive a voice input.'); */
             }),
@@ -373,7 +376,7 @@ function App({ domElement }: any) {
             }),
             ponyfillASR: asEffect((context, _event) => {
                 const
-                    { SpeechRecognition }
+                    { SpeechGrammarList, SpeechRecognition }
                         = createSpeechRecognitionPonyfill({
                             audioContext: context.audioCtx,
                             credentials: {
@@ -382,10 +385,11 @@ function App({ domElement }: any) {
                             }
                         });
                 context.asr = new SpeechRecognition()
+                context.asr.grammars = new SpeechGrammarList();
                 context.asr.lang = context.parameters.asrLanguage
                 context.asr.continuous = true
                 context.asr.interimResults = true
-                context.asr.onstart = function(event: any) {
+                context.asr.onstart = function(_event: any) {
                     send("ASR_START")
                 }
                 context.asr.onresult = function(event: any) {

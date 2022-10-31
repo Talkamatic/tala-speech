@@ -89,6 +89,7 @@ const tdmAssign: AssignAction<SDSContext, any> = assign({
     tdmExpectedAlternatives: (_ctx, event) => (event.data.context.expected_input || {}).alternatives,
     tdmPassivity: (_ctx, event) => event.data.output.expected_passivity,
     tdmActions: (_ctx, event) => event.data.output.actions,
+    tdmAsrHints: (_ctx, event) => event.data.context.asr_hints
 })
 
 
