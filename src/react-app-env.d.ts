@@ -1,17 +1,17 @@
 /// <reference types="react-scripts" />
 
-declare module 'react-speech-kit';
-declare module 'web-speech-cognitive-services/lib/SpeechServices/TextToSpeech';
-declare module 'web-speech-cognitive-services/lib/SpeechServices/SpeechToText';
+declare module "react-speech-kit";
+declare module "web-speech-cognitive-services/lib/SpeechServices/TextToSpeech";
+declare module "web-speech-cognitive-services/lib/SpeechServices/SpeechToText";
 
 interface Hypothesis {
-  "utterance": string;
-  "confidence": number
+  utterance: string;
+  confidence: number;
 }
 
 interface Segment {
-  "pageNumber": number;
-  "dddName": string
+  pageNumber: number;
+  dddName: string;
 }
 
 interface Settings {
@@ -27,13 +27,12 @@ interface Settings {
   i18nClickToContinue: string;
 }
 
-
 interface MySpeechSynthesisUtterance extends SpeechSynthesisUtterance {
-  new(s: string);
+  new (s: string);
 }
 
 interface MySpeechRecognition extends SpeechRecognition {
-  new(s: string);
+  new (s: string);
 }
 
 interface SDSContext {
@@ -65,17 +64,19 @@ interface SDSContext {
 }
 
 type SDSEvent =
-  | { type: 'TURNPAGE', value: Segment }
-  | { type: 'TTS_READY' }
-  | { type: 'TTS_ERROR' }
-  | { type: 'CLICK' }
-  | { type: 'SELECT', value: any }
-  | { type: 'SHOW_ALTERNATIVES' }
-  | { type: 'ASR_START' }
-  | { type: 'STARTSPEECH' }
-  | { type: 'RECOGNISED' }
-  | { type: 'ASRRESULT', value: Hypothesis[] }
-  | { type: 'ENDSPEECH' }
-  | { type: 'LISTEN' }
-  | { type: 'TIMEOUT' }
-  | { type: 'SPEAK', value: string };
+  | { type: "TURNPAGE"; value: Segment }
+  | { type: "TTS_READY" }
+  | { type: "TTS_ERROR" }
+  | { type: "CLICK" }
+  | { type: "PAUSE" }
+  | { type: "SELECT"; value: any }
+  | { type: "SHOW_ALTERNATIVES" }
+  | { type: "ASR_START" }
+  | { type: "STARTSPEECH" }
+  | { type: "RECOGNISED" }
+  | { type: "ASRRESULT"; value: Hypothesis[] }
+  | { type: "ENDSPEECH" }
+  | { type: "TTS_END" }
+  | { type: "LISTEN" }
+  | { type: "TIMEOUT" }
+  | { type: "SPEAK"; value: string };
