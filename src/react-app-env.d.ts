@@ -69,6 +69,7 @@ type SDSEvent =
   | { type: "TTS_ERROR" }
   | { type: "CLICK" }
   | { type: "PAUSE" }
+  | { type: "STOP" }
   | { type: "SELECT"; value: any }
   | { type: "SHOW_ALTERNATIVES" }
   | { type: "ASR_START" }

@@ -38,6 +38,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
     },
     gui: {
       initial: "micOnly",
+      on: { STOP: ".micOnly" },
       states: {
         micOnly: {
           on: { SHOW_ALTERNATIVES: "showAlternatives" },
@@ -49,7 +50,9 @@ const machine = Machine<SDSContext, any, SDSEvent>({
     },
     asrtts: {
       initial: "initialize",
+      on: { STOP: ".stopped" },
       states: {
+        stopped: { on: { CLICK: "initialize" } },
         initialize: {
           initial: "await",
           on: {
@@ -375,15 +378,18 @@ function App({ domElement }: any) {
         getListeners: () => (send) => {
           const clickListener = () => send("CLICK");
           const pauseListener = () => send("PAUSE");
+          const stopListener = () => send("STOP");
           const turnPageListener = (e: any) => {
             send({ type: "TURNPAGE", value: e.detail });
           };
           window.addEventListener("talaClick", clickListener);
           window.addEventListener("talaPause", pauseListener);
+          window.addEventListener("talaStop", stopListener);
           window.addEventListener("turnpage", turnPageListener);
           return () => {
             window.removeEventListener("talaClick", clickListener);
             window.removeEventListener("talaPause", pauseListener);
+            window.removeEventListener("talaStop", stopListener);
             window.removeEventListener("turnpage", turnPageListener);
           };
         },
