@@ -23,18 +23,20 @@
         background: #063746 !important;
       }
     </style>
-</head>
-<body>
-    <div id="tala-speech"
-	 data-azure-authorization-token="<generate token>"
-         data-tdm-endpoint="https://sfi-mataffaren-orchestration-test-pipeline.eu2.ddd.tala.cloud/interact"
-         data-tts-voice="sv-SE, SofieNeural"
-         data-asr-language="sv-SE"
-	 data-i18n-click-to-start="Klicka för att börja!"
-	 data-i18n-click-to-continue="Klicka för att fortsätta"
-	 data-i18n-speaking="Talar…"
-	 data-i18n-listening="Lyssnar…">
-    </div>
+  </head>
+  <body>
+    <div
+      id="tala-speech"
+      data-azure-authorization-token="<generate token>"
+      data-tdm-endpoint="https://sfi-mataffaren-orchestration-test-pipeline.eu2.ddd.tala.cloud/interact"
+      data-tts-voice="sv-SE, SofieNeural"
+      data-asr-language="sv-SE"
+      data-click-to-skip="false"
+      data-i18n-click-to-start="Klicka för att börja!"
+      data-i18n-click-to-continue="Klicka för att fortsätta"
+      data-i18n-speaking="Talar…"
+      data-i18n-listening="Lyssnar…"
+    ></div>
 
     <script>
       const pages = ["cover_web"];

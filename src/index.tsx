@@ -240,10 +240,14 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       actions: send("ENDSPEECH"),
                     },
                     SELECT: "#asrttsIdle",
-                    CLICK: {
-                      target: "#asrttsIdle",
-                      actions: send("ENDSPEECH"),
-                    },
+                    CLICK: [
+                      {
+                        target: "#asrttsIdle",
+                        actions: send("ENDSPEECH"),
+                        cond: (context) => context.parameters.clickToSkip,
+                      },
+                      { target: "paused" },
+                    ],
                   },
                   exit: "ttsStop",
                 },
@@ -348,6 +352,8 @@ function App({ domElement }: any) {
       azureKey: domElement.getAttribute("data-azure-key"),
       completeTimeout:
         Number(domElement.getAttribute("data-complete-timeout")) || 0,
+      clickToSkip:
+        Boolean(domElement.getAttribute("data-click-to-skip")) || false,
       i18nClickToStart:
         domElement.getAttribute("data-i18n-click-to-start") ||
         "Click to start!",
