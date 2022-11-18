@@ -298,11 +298,9 @@ const ReactiveButton = (props: Props): JSX.Element => {
       circleClass = "circle-speaking";
       promptText = promptText || props.state.context.parameters.i18nSpeaking;
       break;
-    case props.state.matches({ dm: "idle" }):
-      promptText = props.state.context.parameters.i18nClickToStart;
-      circleClass = "circle-click";
-      break;
-    case props.state.matches({ dm: "init" }):
+    case props.state.matches({ dm: "idle" }) ||
+      props.state.matches({ dm: "init" }) ||
+      props.state.matches({ dm: "end" }):
       promptText = props.state.context.parameters.i18nClickToStart;
       circleClass = "circle-click";
       break;

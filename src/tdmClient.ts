@@ -168,6 +168,11 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
         CLICK: "tdm",
       },
     },
+    end: {
+      on: {
+        CLICK: "tdm",
+      },
+    },
     tdm: {
       initial: "start",
       states: {
@@ -232,7 +237,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
               on: {
                 ENDSPEECH: [
                   {
-                    target: "#root.dm.init",
+                    target: "#root.dm.end",
                     cond: (context) =>
                       context.tdmActions.some((item: any) =>
                         [
