@@ -74,6 +74,7 @@ type SDSEvent =
   | { type: "SELECT"; value: any }
   | { type: "SHOW_ALTERNATIVES" }
   | { type: "ASR_START" }
+  | { type: "ASR_ERROR" }
   | { type: "STARTSPEECH" }
   | { type: "RECOGNISED" }
   | { type: "ASRRESULT"; value: Hypothesis[] }
