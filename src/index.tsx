@@ -50,17 +50,17 @@ const machine = Machine<SDSContext, any, SDSEvent>({
     },
     asrtts: {
       initial: "initialize",
-      on: { STOP: ".stopped" },
+      on: { STOP: ".stopped", ASR_ERROR: ".fail", TTS_ERROR: ".fail" },
       states: {
         stopped: { on: { CLICK: "initialize" } },
+        fail: {},
         initialize: {
           initial: "await",
           on: {
             TTS_READY: "ready",
-            TTS_ERROR: ".fail",
+            TTS_ERROR: "fail",
           },
           states: {
-            fail: {},
             await: {
               on: {
                 CLICK: [
@@ -81,17 +81,29 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                 id: "getAuthorizationToken",
                 src: (context, _evt) =>
                   getAuthorizationToken(context.parameters.azureKey!),
-                onDone: {
-                  actions: [
-                    assign((_context, event) => {
-                      return { azureAuthorizationToken: event.data };
-                    }),
-                    "ponyfillASR",
-                  ],
-                  target: "ponyfillTTS",
-                },
+                onDone: [
+                  {
+                    target: "#root.asrtts.fail",
+                    actions: (_c, e) =>
+                      console.error(
+                        `[tala-speech] Azure authorisation error: ${e.data}`
+                      ),
+                    cond: "authorizationError",
+                  },
+                  {
+                    actions: [
+                      assign((_context, event) => {
+                        return { azureAuthorizationToken: event.data };
+                      }),
+                      "ponyfillASR",
+                    ],
+                    target: "ponyfillTTS",
+                  },
+                ],
                 onError: {
-                  target: "fail",
+                  actions: (_c) =>
+                    console.error("[tala-speech] Authorisation error"),
+                  target: "#root.asrtts.fail",
                 },
               },
             },
@@ -122,7 +134,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       callback("TTS_READY");
                     } else {
                       console.error(
-                        `TTS_ERROR: Could not get voice for regexp ${voiceRe}`
+                        `[tala-speech] Could not get voice for regexp ${voiceRe}`
                       );
                       callback("TTS_ERROR");
                     }
@@ -371,6 +383,18 @@ function App({ domElement }: any) {
       devTools: process.env.NODE_ENV === "development" ? true : false,
 
       guards: {
+        authorizationError: (_context, event: any) => {
+          try {
+            if (JSON.parse(event.data).error !== undefined) {
+              return true;
+            } else {
+              return false;
+            }
+          } catch (e) {
+            return false;
+          }
+        },
+
         emptyUtteranceAndPassivityNull: (context, event) => {
           if ("value" in event) {
             return event.value === "" && context.tdmPassivity === null;
@@ -444,6 +468,10 @@ function App({ domElement }: any) {
           });
           utterance.voice = context.voice;
           utterance.onend = () => send("TTS_END");
+          utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+            console.error("[tala-speech] TTS error:", event.error);
+            send("TTS_ERROR");
+          };
           context.tts.speak(utterance);
         }),
         ttsStop: asEffect((context) => {
@@ -491,6 +519,11 @@ function App({ domElement }: any) {
             } else {
               send({ type: "STARTSPEECH" });
             }
+          };
+
+          context.asr.onerror = (event: SpeechRecognitionError) => {
+            console.error("[tala-speech] ASR error", event.error);
+            send("ASR_ERROR");
           };
         }),
       },
