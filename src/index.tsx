@@ -346,6 +346,8 @@ function App({ domElement }: any) {
       "data-azure-authorization-token"
     ),
     parameters: {
+      deviceID:
+        domElement.getAttribute("data-device-id") || "tala-speech-default",
       endpoint: domElement.getAttribute("data-tdm-endpoint"),
       ttsVoice: domElement.getAttribute("data-tts-voice") || "en-US",
       ttsLexicon: domElement.getAttribute("data-tts-lexicon"),
