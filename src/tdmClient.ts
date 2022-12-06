@@ -2,13 +2,13 @@ import { MachineConfig, actions, AssignAction } from "xstate";
 
 const { send, assign, choose } = actions;
 
-const startSession = {
+const startSession = (deviceID: string) => ({
   version: "3.3",
-  session: { device_id: "tala-speech" },
+  session: { device_id: deviceID },
   request: {
     start_session: {},
   },
-};
+});
 
 const passivity = (sessionObject: any) => ({
   version: "3.3",
@@ -132,7 +132,10 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
       invoke: {
         id: "startSession",
         src: (context, _evt) =>
-          tdmRequest(context.parameters.endpoint, startSession),
+          tdmRequest(
+            context.parameters.endpoint,
+            startSession(context.parameters.deviceID)
+          ),
         onDone: [
           {
             target: "idle",
@@ -180,7 +183,10 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
           invoke: {
             id: "startSession",
             src: (context, _evt) =>
-              tdmRequest(context.parameters.endpoint, startSession),
+              tdmRequest(
+                context.parameters.endpoint,
+                startSession(context.parameters.deviceID)
+              ),
             onDone: [
               {
                 target: "selectSegment",

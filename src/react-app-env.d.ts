@@ -15,6 +15,7 @@ interface Segment {
 }
 
 interface Settings {
+  deviceID: string;
   endpoint: string;
   ttsVoice: string;
   ttsLexicon: string;
