@@ -3106,12 +3106,12 @@
     "@webassemblyjs/wast-parser" "1.9.0"
     "@xtuc/long" "4.2.2"
 
-"@xstate/inspect@^0.5.2":
-  version "0.5.2"
-  resolved "https://registry.yarnpkg.com/@xstate/inspect/-/inspect-0.5.2.tgz#83d58c96f704ceaab6f7849e578d8e6ce212038c"
-  integrity sha512-DdqUPiKaHW6VpnVZcm8YMD8LBeS3B9bB3+VT/6VEyilgvf2MgYzho2dKOOkeZM0iDEadSmzGdDpz0jh7DSpMXQ==
+"@xstate/inspect@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@xstate/inspect/-/inspect-0.7.0.tgz#0e3011d0fb8eca6d68f06a7c384ab1390801e176"
+  integrity sha512-3wrTf8TfBYprH1gBFdxmOQUBDpBazlICWvGdFzr8IHFL4MbiexEZdAsL2QC/WAmW9BqNYTWTwgfbvKHKg+FrlA==
   dependencies:
-    fast-safe-stringify "^2.0.7"
+    fast-safe-stringify "^2.1.1"
 
 "@xstate/react@^1.6.1":
   version "1.6.3"
@@ -6316,7 +6316,7 @@ fast-levenshtein@^2.0.6, fast-levenshtein@~2.0.6:
   resolved "https://registry.yarnpkg.com/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz#3d8a5c66883a16a30ca8643e851f19baa7797917"
   integrity sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==
 
-fast-safe-stringify@^2.0.7:
+fast-safe-stringify@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/fast-safe-stringify/-/fast-safe-stringify-2.1.1.tgz#c406a83b6e70d9e35ce3b30a81141df30aeba884"
   integrity sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA==

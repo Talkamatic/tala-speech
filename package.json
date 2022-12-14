@@ -46,7 +46,7 @@
     "@types/react": "^17.0.20",
     "@types/react-dom": "^17.0.9",
     "@types/webspeechapi": "^0.0.29",
-    "@xstate/inspect": "^0.5.2",
+    "@xstate/inspect": "^0.7.0",
     "@xstate/react": "^1.6.1",
     "gh-pages": "^3.2.3",
     "microsoft-cognitiveservices-speech-sdk": "^1.18.1",

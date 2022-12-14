@@ -21,7 +21,6 @@ const defaultPassivity = 5000;
 
 if (process.env.NODE_ENV === "development") {
   inspect({
-    url: "https://statecharts.io/inspect",
     iframe: false,
   });
 }
