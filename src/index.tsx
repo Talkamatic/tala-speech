@@ -52,7 +52,10 @@ const machine = Machine<SDSContext, any, SDSEvent>({
       initial: "initialize",
       on: { STOP: ".stopped" },
       states: {
-        stopped: { on: { CLICK: "initialize" } },
+        stopped: {
+          entry: "closeAudioContext",
+          on: { CLICK: "initialize" },
+        },
         initialize: {
           initial: "await",
           on: {
@@ -408,6 +411,11 @@ function App({ domElement }: any) {
               context.audioCtx.createMediaStreamSource(stream);
             });
         },
+        closeAudioContext: (context: SDSContext) => {
+          if (context.audioCtx && context.audioCtx.state !== "closed") {
+            context.audioCtx.close();
+          }
+        },
         setAvailableDDDs: asEffect((context) => {
           const event = new CustomEvent<any>("setAvailableDDDs", {
             detail: context.tdmAvailableDDDs,
@@ -552,5 +560,11 @@ const getAuthorizationToken = (azureKey: string) =>
     })
   ).then((data) => data.text());
 
-const rootElement = document.getElementById("tala-speech");
+const rootElement: HTMLElement = document.getElementById("tala-speech")!;
 ReactDOM.render(<App domElement={rootElement} />, rootElement);
+
+const killListener = () => {
+  dispatchEvent(new CustomEvent("talaStop"));
+  ReactDOM.unmountComponentAtNode(rootElement);
+};
+window.addEventListener("talaKill", killListener);
