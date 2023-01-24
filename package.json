@@ -1,6 +1,6 @@
 {
   "name": "tala-speech",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "license": "GPL-3.0",
   "homepage": "http://example.com",
   "private": true,
@@ -10,7 +10,7 @@
   },
   "scripts": {
     "start": "parcel src/index.tsx",
-    "build": "parcel build src/index.tsx --no-source-maps --dist-dir dist/tala-speech-${npm_package_version}",
+    "build": "parcel build src/index.tsx --no-source-maps --dist-dir dist/",
     "serve": "npx serve dist/ -l 80",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
@@ -18,17 +18,10 @@
     "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "extends": ["react-app", "react-app/jest"]
   },
   "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
+    "production": [">0.2%", "not dead", "not op_mini all"],
     "development": [
       "last 1 chrome version",
       "last 1 firefox version",
