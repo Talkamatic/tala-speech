@@ -54,6 +54,7 @@ interface SDSContext {
   tdmUtterance: string;
   segment: Segment;
   tdmPassivity: number;
+  tdmSpeechCompleteTimeout: number;
   tdmActions: any;
   tdmVisualOutputInfo: any;
   tdmExpectedAlternatives: any;
