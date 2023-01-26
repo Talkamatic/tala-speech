@@ -17,7 +17,7 @@ const TOKEN_ENDPOINT =
   "https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken";
 const REGION = "northeurope";
 
-const defaultPassivity = 5;
+const defaultPassivity = 5000;
 
 if (process.env.NODE_ENV === "development") {
   inspect({
@@ -194,7 +194,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       { type: "TIMEOUT" },
                       {
                         delay: (context) =>
-                          1000 * (context.tdmPassivity ?? defaultPassivity),
+                          context.tdmPassivity ?? defaultPassivity,
                         id: "timeout",
                       }
                     ),
@@ -207,7 +207,9 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                   entry: send(
                     { type: "RECOGNISED" },
                     {
-                      delay: (context) => context.parameters.completeTimeout,
+                      delay: (context) =>
+                        context.tdmSpeechCompleteTimeout ||
+                        context.parameters.completeTimeout,
                       id: "completeTimeout",
                     }
                   ),
@@ -450,7 +452,11 @@ function App({ domElement }: any) {
           }
           const utterance = new context.ttsUtterance(content);
           console.log("S>", context.ttsAgenda, {
-            passivity: context.tdmPassivity,
+            passivity: `${context.tdmPassivity ?? defaultPassivity} ms`,
+            speechCompleteTimeout: `${
+              context.tdmSpeechCompleteTimeout ||
+              context.parameters.completeTimeout
+            } ms`,
           });
           utterance.voice = context.voice;
           utterance.onend = () => send("TTS_END");

@@ -103,7 +103,12 @@ const tdmAssign: AssignAction<SDSContext, any> = assign({
     (event.data.output.visual_output || [{}])[0].visual_information,
   tdmExpectedAlternatives: (_ctx, event) =>
     (event.data.context.expected_input || {}).alternatives,
-  tdmPassivity: (_ctx, event) => event.data.output.expected_passivity,
+  tdmPassivity: (_ctx, event) =>
+    event.data.output.expected_passivity
+      ? event.data.output.expected_passivity * 1000
+      : event.data.output.expected_passivity,
+  tdmSpeechCompleteTimeout: (_ctx, event) =>
+    event.data.output.speech_complete_timeout * 1000,
   tdmActions: (_ctx, event) => event.data.output.actions,
   tdmAsrHints: (_ctx, event) => event.data.context.asr_hints,
 });
