@@ -48,6 +48,37 @@ const machine = Machine<SDSContext, any, SDSEvent>({
         },
       },
     },
+    azureAuthentification: {
+      initial: "start",
+      states: {
+        fail: {},
+        start: { on: { GET_TOKEN: "getNewToken" } },
+        getNewToken: {
+          after: {
+            300000: {
+              target: "getNewToken",
+            },
+          },
+          invoke: {
+            id: "getAuthorizationToken",
+            src: (context, _evt) => getAuthorizationToken(context),
+            onDone: {
+              actions: [
+                assign((_context, event) => {
+                  return { azureAuthorizationToken: event.data };
+                }),
+                send("NEW_TOKEN"),
+                "ponyfillASR",
+                "ponyfillTTS",
+              ],
+            },
+            onError: {
+              target: "fail",
+            },
+          },
+        },
+      },
+    },
     asrtts: {
       initial: "initialize",
       on: { STOP: ".stopped" },
@@ -57,82 +88,35 @@ const machine = Machine<SDSContext, any, SDSEvent>({
           on: { CLICK: "initialize" },
         },
         initialize: {
-          initial: "await",
+          initial: "start",
           on: {
             TTS_READY: "ready",
             TTS_ERROR: ".fail",
           },
           states: {
             fail: {},
+            start: {
+              always: [
+                {
+                  target: "waitForToken",
+                  actions: send("GET_TOKEN"),
+                  cond: (context) => context.azureAuthorizationToken == null,
+                },
+                { target: "await" },
+              ],
+            },
+            waitForToken: {
+              on: { NEW_TOKEN: "await" },
+            },
             await: {
               on: {
-                CLICK: [
-                  {
-                    target: "getToken",
-                    actions: "createAudioContext",
-                    cond: (context) => context.parameters.azureKey !== null,
-                  },
-                  {
-                    target: "ponyfillTTS",
-                    actions: ["createAudioContext", "ponyfillASR"],
-                  },
-                ],
-              },
-            },
-            getToken: {
-              invoke: {
-                id: "getAuthorizationToken",
-                src: (context, _evt) =>
-                  getAuthorizationToken(context.parameters.azureKey!),
-                onDone: {
-                  actions: [
-                    assign((_context, event) => {
-                      return { azureAuthorizationToken: event.data };
-                    }),
-                    "ponyfillASR",
-                  ],
-                  target: "ponyfillTTS",
-                },
-                onError: {
-                  target: "fail",
+                CLICK: {
+                  target: "await2",
+                  actions: ["createAudioContext", "ponyfillASR", "ponyfillTTS"],
                 },
               },
             },
-            ponyfillTTS: {
-              invoke: {
-                id: "ponyTTS",
-                src: (context, _event) => (callback, _onReceive) => {
-                  const ponyfill = createSpeechSynthesisPonyfill({
-                    audioContext: context.audioCtx,
-                    credentials: {
-                      region: REGION,
-                      authorizationToken: context.azureAuthorizationToken,
-                    },
-                  });
-                  const { speechSynthesis, SpeechSynthesisUtterance } =
-                    ponyfill;
-                  context.tts = speechSynthesis;
-                  context.ttsUtterance = SpeechSynthesisUtterance;
-                  context.tts.addEventListener("voiceschanged", () => {
-                    context.tts.cancel();
-                    const voices = context.tts.getVoices();
-                    const voiceRe = RegExp(context.parameters.ttsVoice, "u");
-                    const voice = voices.find((v: any) =>
-                      voiceRe.test(v.name)
-                    )!;
-                    if (voice) {
-                      context.voice = voice;
-                      callback("TTS_READY");
-                    } else {
-                      console.error(
-                        `TTS_ERROR: Could not get voice for regexp ${voiceRe}`
-                      );
-                      callback("TTS_ERROR");
-                    }
-                  });
-                },
-              },
-            },
+            await2: {},
           },
         },
         ready: {
@@ -304,7 +288,6 @@ const ReactiveButton = (props: Props): JSX.Element => {
       promptText = promptText || props.state.context.parameters.i18nSpeaking;
       break;
     case props.state.matches({ dm: "idle" }) ||
-      props.state.matches({ dm: "init" }) ||
       props.state.matches({ dm: "end" }):
       promptText = props.state.context.parameters.i18nClickToStart;
       circleClass = "circle-click";
@@ -356,6 +339,7 @@ function App({ domElement }: any) {
       speechRate: domElement.getAttribute("data-speech-rate") || "1",
       asrLanguage: domElement.getAttribute("data-asr-language") || "en-US",
       azureKey: domElement.getAttribute("data-azure-key"),
+      azureProxyURL: domElement.getAttribute("data-azure-proxy-url"),
       completeTimeout:
         Number(domElement.getAttribute("data-complete-timeout")) || 0,
       clickToSkip:
@@ -447,7 +431,8 @@ function App({ domElement }: any) {
             content =
               content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
           }
-          content = content + `<prosody rate="${context.parameters.speechRate}">`;
+          content =
+            content + `<prosody rate="${context.parameters.speechRate}">`;
           content = content + `${context.ttsAgenda}</prosody></voice></speak>`;
           if (context.ttsAgenda === ("" || " ")) {
             content = "";
@@ -467,6 +452,33 @@ function App({ domElement }: any) {
         ttsStop: asEffect((context) => {
           /* console.log('TTS STOP...'); */
           context.tts.cancel();
+        }),
+        ponyfillTTS: asEffect((context, _event) => {
+          const ponyfill = createSpeechSynthesisPonyfill({
+            audioContext: context.audioCtx,
+            credentials: {
+              region: REGION,
+              authorizationToken: context.azureAuthorizationToken,
+            },
+          });
+          const { speechSynthesis, SpeechSynthesisUtterance } = ponyfill;
+          context.tts = speechSynthesis;
+          context.ttsUtterance = SpeechSynthesisUtterance;
+          context.tts.addEventListener("voiceschanged", () => {
+            context.tts.cancel();
+            const voices = context.tts.getVoices();
+            const voiceRe = RegExp(context.parameters.ttsVoice, "u");
+            const voice = voices.find((v: any) => voiceRe.test(v.name))!;
+            if (voice) {
+              context.voice = voice;
+              send("TTS_READY");
+            } else {
+              console.error(
+                `TTS_ERROR: Could not get voice for regexp ${voiceRe}`
+              );
+              send("TTS_ERROR");
+            }
+          });
         }),
         ponyfillASR: asEffect((context, _event) => {
           const { SpeechGrammarList, SpeechRecognition } =
@@ -560,15 +572,21 @@ function App({ domElement }: any) {
   }
 }
 
-const getAuthorizationToken = (azureKey: string) =>
-  fetch(
+const getAuthorizationToken = (context: SDSContext) => {
+  if (context.parameters.azureProxyURL) {
+    return fetch(new Request(context.parameters.azureProxyURL)).then((data) =>
+      data.text()
+    );
+  }
+  return fetch(
     new Request(TOKEN_ENDPOINT, {
       method: "POST",
       headers: {
-        "Ocp-Apim-Subscription-Key": azureKey,
+        "Ocp-Apim-Subscription-Key": context.parameters.azureKey!,
       },
     })
   ).then((data) => data.text());
+};
 
 const rootElement: HTMLElement = document.getElementById("tala-speech")!;
 ReactDOM.render(<App domElement={rootElement} />, rootElement);

@@ -22,6 +22,7 @@ interface Settings {
   speechRate: string;
   asrLanguage: string;
   azureKey?: string;
+  azureProxyURL?: string;
   completeTimeout: number;
   clickToSkip: boolean;
   i18nClickToStart: string;
@@ -69,6 +70,8 @@ interface SDSContext {
 
 type SDSEvent =
   | { type: "TURNPAGE"; value: Segment }
+  | { type: "GET_TOKEN" }
+  | { type: "NEW_TOKEN" }
   | { type: "TTS_READY" }
   | { type: "TTS_ERROR" }
   | { type: "CLICK" }
