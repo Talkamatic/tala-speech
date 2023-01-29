@@ -156,7 +156,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
     },
     idle: {
       on: {
-        CLICK: "init",
+        CLICK: "tdm",
         SELECT: {
           actions: [
             send("CLICK"),
@@ -168,12 +168,6 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
             }),
           ],
         },
-      },
-    },
-    init: {
-      on: {
-        TTS_READY: "tdm",
-        CLICK: "tdm",
       },
     },
     end: {
