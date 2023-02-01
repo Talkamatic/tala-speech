@@ -194,7 +194,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       { type: "TIMEOUT" },
                       {
                         delay: (context) =>
-                          context.tdmPassivity ?? defaultPassivity,
+                          context.tdmPassivity ?? 1000 * 3600 * 24,
                         id: "timeout",
                       }
                     ),
@@ -454,7 +454,7 @@ function App({ domElement }: any) {
           }
           const utterance = new context.ttsUtterance(content);
           console.log("S>", context.ttsAgenda, {
-            passivity: `${context.tdmPassivity ?? defaultPassivity} ms`,
+            passivity: `${context.tdmPassivity ?? "∞"} ms`,
             speechCompleteTimeout: `${
               context.tdmSpeechCompleteTimeout ||
               context.parameters.completeTimeout

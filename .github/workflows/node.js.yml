@@ -38,12 +38,12 @@ jobs:
     steps:
       - name: Create dir
         run: |
-          mkdir ${{ github.event.number }}
+          mkdir ${{ github.event.number == 0 && 'master' ||  format('{0}', github.event.number) }}
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
           name: dist
-          path: ${{ github.event.number }}
+          path: ${{ github.event.number == 0 && 'master' ||  format('{0}', github.event.number) }}
       - name: Display structure of downloaded files
         run: ls -R
       - name: Deploy to Staging server
