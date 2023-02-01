@@ -43,7 +43,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: dist
-          path: ${{ github.event.number }}
+          path: ${{ github.event.number == 0 && 'master' ||  format('{0}', github.event.number) }}
       - name: Display structure of downloaded files
         run: ls -R
       - name: Deploy to Staging server
