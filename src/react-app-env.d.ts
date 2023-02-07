@@ -19,6 +19,7 @@ interface Settings {
   endpoint: string;
   ttsVoice: string;
   ttsLexicon: string;
+  speechRate: string;
   asrLanguage: string;
   azureKey?: string;
   completeTimeout: number;

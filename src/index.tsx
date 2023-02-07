@@ -353,6 +353,7 @@ function App({ domElement }: any) {
       endpoint: domElement.getAttribute("data-tdm-endpoint"),
       ttsVoice: domElement.getAttribute("data-tts-voice") || "en-US",
       ttsLexicon: domElement.getAttribute("data-tts-lexicon"),
+      speechRate: domElement.getAttribute("data-speech-rate") || "1",
       asrLanguage: domElement.getAttribute("data-asr-language") || "en-US",
       azureKey: domElement.getAttribute("data-azure-key"),
       completeTimeout:
@@ -446,7 +447,8 @@ function App({ domElement }: any) {
             content =
               content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
           }
-          content = content + `${context.ttsAgenda}</voice></speak>`;
+          content = content + `<prosody rate="${context.parameters.speechRate}">`;
+          content = content + `${context.ttsAgenda}</prosody></voice></speak>`;
           if (context.ttsAgenda === ("" || " ")) {
             content = "";
           }
