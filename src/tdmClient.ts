@@ -85,6 +85,7 @@ const tdmRequest = (endpoint: string, requestBody: any) =>
   fetch(
     new Request(endpoint, {
       method: "POST",
+      mode: "no-cors",
       headers: {
         "Content-type": "application/json",
       },
