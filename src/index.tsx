@@ -425,7 +425,7 @@ function App({ domElement }: any) {
           /* console.log('Recognition stopped.'); */
         }),
         ttsStart: asEffect((context) => {
-          let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.voice.name}">`;
+          let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" xml:lang="en-US"><voice name="${context.voice.name}">`;
           if (context.parameters.ttsLexicon) {
             content =
               content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
