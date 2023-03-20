@@ -425,14 +425,14 @@ function App({ domElement }: any) {
           /* console.log('Recognition stopped.'); */
         }),
         ttsStart: asEffect((context) => {
-          let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" xml:lang="en-US"><voice name="${context.voice.name}">`;
+          let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" xml:lang="en-US"><voice name="${context.voice.name}"><mstts:express-as style="chat">`;
           if (context.parameters.ttsLexicon) {
             content =
               content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
           }
           content =
             content + `<prosody rate="${context.parameters.speechRate}">`;
-          content = content + `${context.ttsAgenda}</prosody></voice></speak>`;
+          content = content + `${context.ttsAgenda}</prosody></mstts:express-as></voice></speak>`;
           if (context.ttsAgenda === ("" || " ")) {
             content = "";
           }
