@@ -14,8 +14,8 @@ let dm = tdmDmMachine;
 const { send, cancel } = actions;
 
 const TOKEN_ENDPOINT =
-  "https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken";
-const REGION = "northeurope";
+  "https://eastus.api.cognitive.microsoft.com/sts/v1.0/issuetoken";
+const REGION = "eastus";
 
 const defaultPassivity = 5000;
 
