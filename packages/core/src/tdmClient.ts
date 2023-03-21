@@ -92,7 +92,7 @@ const tdmRequest = (endpoint: string, requestBody: any) =>
     })
   ).then((data) => data.json());
 
-const tdmAssign: AssignAction<SDSContext, any> = assign({
+const tdmAssign: AssignAction<DomainContext, any> = assign({
   sessionObject: (_ctx, event) => event.data.session,
   tdmAll: (_ctx, event) => event.data,
   tdmOutput: (_ctx, event) => event.data.output,
@@ -113,16 +113,7 @@ const tdmAssign: AssignAction<SDSContext, any> = assign({
   tdmAsrHints: (_ctx, event) => event.data.context.asr_hints,
 });
 
-const maybeAlternatives = choose<SDSContext, SDSEvent>([
-  {
-    cond: (context) => {
-      return (context.tdmExpectedAlternatives || [{}])[0].visual_information;
-    },
-    actions: [send({ type: "SHOW_ALTERNATIVES" })],
-  },
-]);
-
-export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
+export const tdmDmMachine: MachineConfig<DomainContext, any, SDSEvent> = {
   initial: "getPages",
   on: {
     TURNPAGE: {
@@ -144,7 +135,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
         onDone: [
           {
             target: "idle",
-            actions: [tdmAssign, "setAvailableDDDs"],
+            actions: tdmAssign,
             cond: (_ctx, event) => event.data.output,
           },
           {
@@ -157,17 +148,6 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
     idle: {
       on: {
         CLICK: "tdm",
-        SELECT: {
-          actions: [
-            send("CLICK"),
-            assign({
-              segment: (_ctx, event) => ({
-                dddName: event.value.ddd,
-                pageNumber: 0,
-              }),
-            }),
-          ],
-        },
       },
     },
     end: {
@@ -205,7 +185,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
             src: (context, _evt) =>
               tdmRequest(
                 context.parameters.endpoint,
-                segmentInput(context.sessionObject, context.segment.dddName)
+                segmentInput(context.sessionObject, context.segment!.dddName)
               ),
             onDone: [
               {
@@ -224,17 +204,12 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
           initial: "prompt",
           on: {
             RECOGNISED: "next",
-            SELECT: {
-              target: "nextHaptic",
-              actions: assign({ hapticInput: (_ctx, event) => event.value }),
-            },
-            TIMEOUT: "passivity",
+            ASR_NOINPUT_TIMEOUT: "passivity",
           },
           states: {
             prompt: {
               entry: [
-                maybeAlternatives,
-                send((context: SDSContext) => ({
+                send((context: DomainContext) => ({
                   type: "SPEAK",
                   value: context.tdmUtterance,
                 })),
@@ -242,7 +217,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
               on: {
                 ENDSPEECH: [
                   {
-                    target: "#root.dm.end",
+                    target: "#sds.dm.end",
                     cond: (context) =>
                       context.tdmActions.some((item: any) =>
                         [
@@ -253,7 +228,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
                       ),
                   },
                   {
-                    target: "#root.dm.tdm.passivity",
+                    target: "#sds.dm.tdm.passivity",
                     cond: (context) => context.tdmPassivity === 0,
                   },
                   { target: "ask" },
@@ -273,7 +248,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
                 context.parameters.endpoint,
                 nlInput(
                   context.sessionObject,
-                  context.tdmActiveDDD,
+                  context.tdmActiveDDD!,
                   context.tdmOutput.moves,
                   context.recResult
                 )

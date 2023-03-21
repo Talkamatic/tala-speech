@@ -55,7 +55,7 @@ interface SDSContext {
   tdmAll: any;
   tdmUtterance: string;
   segment: Segment;
-  tdmPassivity: number;
+  tdmPassivity?: number;
   tdmSpeechCompleteTimeout: number;
   tdmActions: any;
   tdmVisualOutputInfo: any;
@@ -68,7 +68,7 @@ interface SDSContext {
   audioCtx: any;
 }
 
-type SDSEvent =
+type SDSEventDeprecated =
   | { type: "TURNPAGE"; value: Segment }
   | { type: "GET_TOKEN" }
   | { type: "NEW_TOKEN" }
