@@ -2,46 +2,20 @@ import { MachineConfig, actions, AssignAction } from "xstate";
 
 const { send, assign, choose } = actions;
 
+const VERSION = "3.4";
 const startSession = (deviceID: string) => ({
-  version: "3.3",
+  version: VERSION,
   session: { device_id: deviceID },
   request: {
     start_session: {},
   },
 });
 
-const passivity = (sessionObject: any) => ({
-  version: "3.3",
-  session: sessionObject,
+const startSessionWithSegment = (deviceID: string, ddd: string) => ({
+  version: VERSION,
+  session: { device_id: deviceID },
   request: {
-    passivity: {},
-  },
-});
-
-const nlInput = (
-  sessionObject: any,
-  ddd: string,
-  moves: any,
-  hypotheses: Hypothesis[]
-) => ({
-  version: "3.3",
-  session: {
-    ...sessionObject,
-    ddd: ddd,
-    moves: moves,
-  },
-  request: {
-    natural_language_input: {
-      modality: "speech",
-      hypotheses: hypotheses,
-    },
-  },
-});
-
-const segmentInput = (sessionObject: any, ddd: string) => ({
-  version: "3.3",
-  session: sessionObject,
-  request: {
+    start_session: {},
     semantic_input: {
       interpretations: [
         {
@@ -60,8 +34,36 @@ const segmentInput = (sessionObject: any, ddd: string) => ({
   },
 });
 
+const passivity = (sessionObject: any) => ({
+  version: VERSION,
+  session: sessionObject,
+  request: {
+    passivity: {},
+  },
+});
+
+const nlInput = (
+  sessionObject: any,
+  ddd: string,
+  moves: any,
+  hypotheses: Hypothesis[]
+) => ({
+  version: VERSION,
+  session: {
+    ...sessionObject,
+    ddd: ddd,
+    moves: moves,
+  },
+  request: {
+    natural_language_input: {
+      modality: "speech",
+      hypotheses: hypotheses,
+    },
+  },
+});
+
 const hapticInput = (sessionObject: any, alternative: any) => ({
-  version: "3.3",
+  version: VERSION,
   session: sessionObject,
   request: {
     semantic_input: {
@@ -180,32 +182,14 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
       states: {
         start: {
           invoke: {
-            id: "startSession",
+            id: "startSessionWithSegment",
             src: (context, _evt) =>
               tdmRequest(
                 context.parameters.endpoint,
-                startSession(context.parameters.deviceID)
-              ),
-            onDone: [
-              {
-                target: "selectSegment",
-                actions: tdmAssign,
-                cond: (_ctx, event) => event.data.output,
-              },
-              {
-                target: "fail",
-              },
-            ],
-            onError: { target: "fail" },
-          },
-        },
-        selectSegment: {
-          invoke: {
-            id: "segmentInput",
-            src: (context, _evt) =>
-              tdmRequest(
-                context.parameters.endpoint,
-                segmentInput(context.sessionObject, context.segment.dddName)
+                startSessionWithSegment(
+                  context.parameters.deviceID,
+                  context.segment.dddName
+                )
               ),
             onDone: [
               {
