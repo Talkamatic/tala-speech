@@ -125,6 +125,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               id: "asrttsIdle",
               on: {
                 LISTEN: [{ target: "waitForRecogniser" }],
+                SPEAKING_STREAM: "speakingStream",
                 SPEAK: [
                   {
                     target: "recognising.pause",
@@ -137,6 +138,21 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     }),
                   },
                 ],
+              },
+            },
+            speakingStream: {
+              on: {
+                SPEAK: ".wait",
+              },
+              states: {
+                wait: {
+                  on: {
+                    TTS_END: {
+                      target: "#asrttsIdle",
+                      actions: send("ENDSPEECH"),
+                    },
+                  },
+                },
               },
             },
             waitForRecogniser: {
@@ -282,7 +298,8 @@ const ReactiveButton = (props: Props): JSX.Element => {
       circleClass = "circle-recognising";
       promptText = promptText || props.state.context.parameters.i18nListening;
       break;
-    case props.state.matches({ asrtts: { ready: { speaking: "go" } } }):
+    case props.state.matches({ asrtts: { ready: { speaking: "go" } } }) ||
+      props.state.matches({ asrtts: { ready: "speakingStream" } }):
       circleClass = "circle-speaking";
       promptText = promptText || props.state.context.parameters.i18nSpeaking;
       break;
@@ -374,22 +391,72 @@ function App({ domElement }: any) {
           const clickListener = () => send("CLICK");
           const pauseListener = () => send("PAUSE");
           const stopListener = () => send("STOP");
+          const speakListener = (e: any) =>
+            send({ type: "SPEAK", value: e.detail });
+
           const turnPageListener = (e: any) => {
             send({ type: "TURNPAGE", value: e.detail });
           };
           window.addEventListener("talaClick", clickListener);
           window.addEventListener("talaPause", pauseListener);
           window.addEventListener("talaStop", stopListener);
+          window.addEventListener("talaSpeak", speakListener);
           window.addEventListener("turnpage", turnPageListener);
           return () => {
             window.removeEventListener("talaClick", clickListener);
             window.removeEventListener("talaPause", pauseListener);
             window.removeEventListener("talaStop", stopListener);
+            window.removeEventListener("talaSpeak", speakListener);
             window.removeEventListener("turnpage", turnPageListener);
           };
         },
       },
       actions: {
+        readServerEvents: (context: SDSContext) => {
+          if (!context.stream) {
+            context.stream = new EventSource(
+              "https://media.bcr.hub.earth:4880/sse/" +
+                context.sessionObject.session_id
+            );
+            let buffer = "";
+            context.stream.onmessage = function (event: any) {
+              let chunk = event.data;
+              console.debug("🍰", chunk);
+              if (chunk !== "[CLEAR]") {
+                buffer = buffer + chunk;
+                if (buffer.includes("[DONE]")) {
+                  buffer = buffer.replace("[DONE]", "");
+                  const utterance = wrapSSML(buffer || "", context);
+                  utterance.voice = context.voice;
+                  console.log(`S(chunk)> ${buffer} [done speaking]`, {
+                    passivity: `${context.tdmPassivity ?? "∞"} ms`,
+                    speechCompleteTimeout: `${
+                      context.tdmSpeechCompleteTimeout ||
+                      context.parameters.completeTimeout
+                    } ms`,
+                  });
+                  context.tts.speak(utterance);
+                  buffer = "";
+                  utterance.onend = () => {
+                    send("TTS_END");
+                  };
+                }
+
+                const re = /(,\s)|([!.?](\s|$))/;
+                let m = buffer.match(re);
+                if (m && !context.tts.speaking) {
+                  let sep = m[0];
+                  let utt = buffer.split(sep)[0] + sep;
+                  buffer = buffer.split(sep).slice(1).join();
+                  const utterance = wrapSSML(utt, context);
+                  console.log("S(chunk)>", utt);
+                  context.tts.speak(utterance);
+                  send("SPEAKING_STREAM");
+                }
+              }
+            };
+          }
+        },
         createAudioContext: (context: SDSContext) => {
           context.audioCtx = new ((window as any).AudioContext ||
             (window as any).webkitAudioContext)();
@@ -425,18 +492,7 @@ function App({ domElement }: any) {
           /* console.log('Recognition stopped.'); */
         }),
         ttsStart: asEffect((context) => {
-          let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.voice.name}">`;
-          if (context.parameters.ttsLexicon) {
-            content =
-              content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
-          }
-          content =
-            content + `<prosody rate="${context.parameters.speechRate}">`;
-          content = content + `${context.ttsAgenda}</prosody></voice></speak>`;
-          if (context.ttsAgenda === ("" || " ")) {
-            content = "";
-          }
-          const utterance = new context.ttsUtterance(content);
+          const utterance = wrapSSML(context.ttsAgenda, context);
           console.log("S>", context.ttsAgenda, {
             passivity: `${context.tdmPassivity ?? "∞"} ms`,
             speechCompleteTimeout: `${
@@ -499,9 +555,7 @@ function App({ domElement }: any) {
           context.asr.onresult = function (event: any) {
             if (event.results[event.results.length - 1].isFinal) {
               const transcript = event.results
-                .map((x: SpeechRecognitionResult) =>
-                  x[0].transcript.replace(/\.$/, "")
-                )
+                .map((x: SpeechRecognitionResult) => x[0].transcript)
                 .join(" ");
               const confidence =
                 event.results
@@ -585,6 +639,22 @@ const getAuthorizationToken = (context: SDSContext) => {
       },
     })
   ).then((data) => data.text());
+};
+
+const wrapSSML = (text: string, context: SDSContext) => {
+  if (["", " "].includes(text)) {
+    return new context.ttsUtterance("");
+  }
+  let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.voice.name}">`;
+  if (context.parameters.ttsLexicon) {
+    content = content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
+  }
+  content = content + `<prosody rate="${context.parameters.speechRate}">`;
+  content =
+    content +
+    `${text}<mstts:silence  type="Tailing-exact" value="0ms"/></prosody></voice></speak>`;
+
+  return new context.ttsUtterance(content);
 };
 
 const rootElement: HTMLElement = document.getElementById("tala-speech")!;

@@ -11,11 +11,10 @@ const startSession = (deviceID: string) => ({
   },
 });
 
-const startSessionWithSegment = (deviceID: string, ddd: string) => ({
+const sendSegment = (sessionObject: any, ddd: string) => ({
   version: VERSION,
-  session: { device_id: deviceID },
+  session: sessionObject,
   request: {
-    start_session: {},
     semantic_input: {
       interpretations: [
         {
@@ -146,7 +145,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
         onDone: [
           {
             target: "idle",
-            actions: [tdmAssign, "setAvailableDDDs"],
+            actions: [tdmAssign, "setAvailableDDDs", "readServerEvents"],
             cond: (_ctx, event) => event.data.output,
           },
           {
@@ -182,26 +181,25 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
       states: {
         start: {
           invoke: {
-            id: "startSessionWithSegment",
+            id: "sendSegment",
             src: (context, _evt) =>
               tdmRequest(
                 context.parameters.endpoint,
-                startSessionWithSegment(
-                  context.parameters.deviceID,
-                  context.segment.dddName
-                )
+                sendSegment(context.sessionObject, context.segment.dddName)
               ),
             onDone: [
               {
                 target: "utter",
-                actions: tdmAssign,
+                actions: [tdmAssign],
                 cond: (_ctx, event) => event.data.output,
               },
               {
                 target: "fail",
               },
             ],
-            onError: { target: "fail" },
+            onError: {
+              target: "fail",
+            },
           },
         },
         utter: {

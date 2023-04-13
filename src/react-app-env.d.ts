@@ -32,11 +32,7 @@ interface Settings {
 }
 
 interface MySpeechSynthesisUtterance extends SpeechSynthesisUtterance {
-  new (s: string);
-}
-
-interface MySpeechRecognition extends SpeechRecognition {
-  new (s: string);
+  new (s: string?): MySpeechSynthesisUtterance;
 }
 
 interface SDSContext {
@@ -66,6 +62,7 @@ interface SDSContext {
   tdmAsrHints: string[];
   azureAuthorizationToken: string;
   audioCtx: any;
+  stream: any;
 }
 
 type SDSEvent =
@@ -87,4 +84,5 @@ type SDSEvent =
   | { type: "TTS_END" }
   | { type: "LISTEN" }
   | { type: "TIMEOUT" }
-  | { type: "SPEAK"; value: string };
+  | { type: "SPEAK"; value: string }
+  | { type: "SPEAKING_STREAM" };

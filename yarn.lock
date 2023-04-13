@@ -2830,11 +2830,6 @@
     anymatch "^3.0.0"
     source-map "^0.6.0"
 
-"@types/webspeechapi@^0.0.29":
-  version "0.0.29"
-  resolved "https://registry.yarnpkg.com/@types/webspeechapi/-/webspeechapi-0.0.29.tgz#8f3c6b31b779df7a9bbac7f89acfce0c3bcb1972"
-  integrity sha512-AYEhqEJLdR08YPBOwYa73IHTiGU4DdngbKbtZdW+bzuM7s8LzKBed0Fwgl/a3oMqMY227qOT+3Lpr5A0WSmm+A==
-
 "@types/yargs-parser@*":
   version "21.0.0"
   resolved "https://registry.yarnpkg.com/@types/yargs-parser/-/yargs-parser-21.0.0.tgz#0c60e537fa790f5f9472ed2776c2b71ec117351b"
