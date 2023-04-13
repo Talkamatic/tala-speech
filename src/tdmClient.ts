@@ -194,7 +194,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
             onDone: [
               {
                 target: "utter",
-                actions: tdmAssign,
+                actions: [tdmAssign, "readServerEvents"],
                 cond: (_ctx, event) => event.data.output,
               },
               {

@@ -125,6 +125,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               id: "asrttsIdle",
               on: {
                 LISTEN: [{ target: "waitForRecogniser" }],
+                SPEAKING_STREAM: "speakingStream",
                 SPEAK: [
                   {
                     target: "recognising.pause",
@@ -137,6 +138,21 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     }),
                   },
                 ],
+              },
+            },
+            speakingStream: {
+              on: {
+                SPEAK: ".wait",
+              },
+              states: {
+                wait: {
+                  on: {
+                    TTS_END: {
+                      target: "#asrttsIdle",
+                      actions: send("ENDSPEECH"),
+                    },
+                  },
+                },
               },
             },
             waitForRecogniser: {
@@ -282,7 +298,8 @@ const ReactiveButton = (props: Props): JSX.Element => {
       circleClass = "circle-recognising";
       promptText = promptText || props.state.context.parameters.i18nListening;
       break;
-    case props.state.matches({ asrtts: { ready: { speaking: "go" } } }):
+    case props.state.matches({ asrtts: { ready: { speaking: "go" } } }) ||
+      props.state.matches({ asrtts: { ready: "speakingStream" } }):
       circleClass = "circle-speaking";
       promptText = promptText || props.state.context.parameters.i18nSpeaking;
       break;
@@ -390,6 +407,49 @@ function App({ domElement }: any) {
         },
       },
       actions: {
+        readServerEvents: (context: SDSContext) => {
+          context.stream = new EventSource(
+            "https://media.bcr.hub.earth:4880/sse/" +
+              context.sessionObject.session_id
+          );
+          let buffer = "";
+          context.stream.onmessage = function (event: any) {
+            let chunk = event.data;
+            console.debug("🍰", chunk);
+            if (chunk !== "[CLEAR]") {
+              buffer = buffer + chunk;
+              const re = /(,\s)|([!.?](\s|$))/;
+              let m = buffer.match(re);
+              if (m && !context.tts.speaking) {
+                let sep = m[0];
+                let utt = buffer.split(sep)[0] + sep;
+                buffer = buffer.split(sep).slice(1).join();
+                const utterance = new context.ttsUtterance(utt);
+                utterance.voice = context.voice;
+                console.log("S(chunk)>", utt);
+                context.tts.speak(utterance);
+                send("SPEAKING_STREAM");
+              }
+              if (buffer.includes("[DONE]")) {
+                buffer = buffer.replace("[DONE]", "");
+                const utterance = new context.ttsUtterance(buffer || "");
+                utterance.voice = context.voice;
+                console.log(`S(chunk)> ${buffer} [done speaking]`, {
+                  passivity: `${context.tdmPassivity ?? "∞"} ms`,
+                  speechCompleteTimeout: `${
+                    context.tdmSpeechCompleteTimeout ||
+                    context.parameters.completeTimeout
+                  } ms`,
+                });
+                context.tts.speak(utterance);
+                buffer = "";
+                utterance.onend = () => {
+                  send("TTS_END");
+                };
+              }
+            }
+          };
+        },
         createAudioContext: (context: SDSContext) => {
           context.audioCtx = new ((window as any).AudioContext ||
             (window as any).webkitAudioContext)();
