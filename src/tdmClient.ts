@@ -235,6 +235,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
                           "EndConversation",
                         ].includes(item.name)
                       ),
+                    actions: "dispatchEndOfDialogueEvent",
                   },
                   {
                     target: "#root.dm.tdm.passivity",

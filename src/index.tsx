@@ -410,6 +410,24 @@ function App({ domElement }: any) {
           });
           window.dispatchEvent(event);
         }),
+        dispatchEndOfDialogueEvent: asEffect(() => {
+          const event = new CustomEvent<any>("endOfDialogue", {
+            detail: {
+              questions: 2,
+              correctAnswers: 2,
+              correctAnswersDetailed: {
+                firstAttempt: 1,
+                afterHint: 0,
+                afterAlternatives: 1,
+              },
+              neutralAnswers: 0,
+              incorrectAnswers: 0,
+              hintsReceived: 1,
+            },
+          });
+          window.dispatchEvent(event);
+        }),
+
         recLogResult: (context: SDSContext) => {
           console.log("U>", context.recResult[0]["utterance"], {
             confidence: context.recResult[0]["confidence"],
