@@ -32,9 +32,9 @@ const machine = Machine<SDSContext, any, SDSEvent>({
     src: "getListeners",
   },
   states: {
-    dm: {
-      ...dm,
-    },
+    // dm: {
+    //   ...dm,
+    // },
     gui: {
       initial: "micOnly",
       on: { STOP: ".micOnly" },
@@ -374,17 +374,22 @@ function App({ domElement }: any) {
           const clickListener = () => send("CLICK");
           const pauseListener = () => send("PAUSE");
           const stopListener = () => send("STOP");
+          const speakListener = (e: any) =>
+            send({ type: "SPEAK", value: e.detail });
+
           const turnPageListener = (e: any) => {
             send({ type: "TURNPAGE", value: e.detail });
           };
           window.addEventListener("talaClick", clickListener);
           window.addEventListener("talaPause", pauseListener);
           window.addEventListener("talaStop", stopListener);
+          window.addEventListener("talaSpeak", speakListener);
           window.addEventListener("turnpage", turnPageListener);
           return () => {
             window.removeEventListener("talaClick", clickListener);
             window.removeEventListener("talaPause", pauseListener);
             window.removeEventListener("talaStop", stopListener);
+            window.removeEventListener("talaSpeak", speakListener);
             window.removeEventListener("turnpage", turnPageListener);
           };
         },
