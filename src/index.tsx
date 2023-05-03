@@ -3,13 +3,13 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { Machine, assign, actions, State } from "xstate";
 import { useMachine, asEffect } from "@xstate/react";
-import { tdmDmMachine } from "./tdmClient";
+import { fakeDmMachine } from "./fakeDm";
 import { inspect } from "@xstate/inspect";
 
 import createSpeechRecognitionPonyfill from "web-speech-cognitive-services/lib/SpeechServices/SpeechToText";
 import createSpeechSynthesisPonyfill from "web-speech-cognitive-services/lib/SpeechServices/TextToSpeech";
 
-let dm = tdmDmMachine;
+let dm = fakeDmMachine;
 
 const { send, cancel } = actions;
 
@@ -33,6 +33,14 @@ const machine = Machine<SDSContext, any, SDSEvent>({
   },
   states: {
     dm: {
+      on: {
+        ASSIGN_DIALOGUE: {
+          actions: assign({
+            dialogue: (_ctx, event) => event.value,
+            steps: (_ctx, event) => event.value.length,
+          }),
+        },
+      },
       ...dm,
     },
     gui: {
@@ -329,6 +337,8 @@ function App({ domElement }: any) {
     azureAuthorizationToken: domElement.getAttribute(
       "data-azure-authorization-token"
     ),
+    dialogue: JSON.parse(domElement.getAttribute("data-dialogue")),
+    steps: JSON.parse(domElement.getAttribute("data-dialogue")).length,
     parameters: {
       deviceID:
         domElement.getAttribute("data-device-id") || "tala-speech-default",
@@ -353,6 +363,9 @@ function App({ domElement }: any) {
       i18nClickToContinue:
         domElement.getAttribute("data-i18n-click-to-continue") ||
         "Click to continue",
+      i18nNoInput:
+        domElement.getAttribute("data-i18n-no-input") ||
+        "Sorry, I can't hear you.",
     },
   };
 
@@ -374,18 +387,26 @@ function App({ domElement }: any) {
           const clickListener = () => send("CLICK");
           const pauseListener = () => send("PAUSE");
           const stopListener = () => send("STOP");
+          const assignDialogueListener = (e: any) => {
+            send({ type: "ASSIGN_DIALOGUE", value: e.detail });
+          };
           const turnPageListener = (e: any) => {
             send({ type: "TURNPAGE", value: e.detail });
           };
           window.addEventListener("talaClick", clickListener);
           window.addEventListener("talaPause", pauseListener);
           window.addEventListener("talaStop", stopListener);
+          window.addEventListener("assignDialogue", assignDialogueListener);
+
           window.addEventListener("turnpage", turnPageListener);
           return () => {
             window.removeEventListener("talaClick", clickListener);
             window.removeEventListener("talaPause", pauseListener);
             window.removeEventListener("talaStop", stopListener);
-            window.removeEventListener("turnpage", turnPageListener);
+            window.removeEventListener(
+              "assignDialogue",
+              assignDialogueListener
+            );
           };
         },
       },
@@ -416,7 +437,7 @@ function App({ domElement }: any) {
           });
         },
         recStart: asEffect((context) => {
-          (context.asr.grammars as any).phrases = context.tdmAsrHints;
+          (context.asr.grammars as any).phrases = context.tdmAsrHints || [];
           context.asr.start();
           /* console.log('Ready to receive a voice input.'); */
         }),

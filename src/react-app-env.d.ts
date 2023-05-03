@@ -29,6 +29,7 @@ interface Settings {
   i18nListening: string;
   i18nSpeaking: string;
   i18nClickToContinue: string;
+  i18nNoInput: string;
 }
 
 interface MySpeechSynthesisUtterance extends SpeechSynthesisUtterance {
@@ -66,9 +67,14 @@ interface SDSContext {
   tdmAsrHints: string[];
   azureAuthorizationToken: string;
   audioCtx: any;
+  stream: any;
+  dialogue: any;
+  steps: number;
+  step: number;
 }
 
 type SDSEvent =
+  | { type: "ASSIGN_DIALOGUE"; value: any }
   | { type: "TURNPAGE"; value: Segment }
   | { type: "GET_TOKEN" }
   | { type: "NEW_TOKEN" }
