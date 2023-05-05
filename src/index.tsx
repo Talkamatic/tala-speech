@@ -415,7 +415,7 @@ function App({ domElement }: any) {
         readServerEvents: (context: SDSContext) => {
           if (!context.stream) {
             context.stream = new EventSource(
-              "https://media.bcr.hub.earth:4880/sse/" +
+              "https://tar.dc1.pratb.art:1880/sse/" +
                 context.sessionObject.session_id
             );
             let buffer = "";
