@@ -98,10 +98,13 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               always: [
                 {
                   target: "waitForToken",
-                  actions: send("GET_TOKEN"),
+                  actions: ["createAudioContext", send("GET_TOKEN")],
                   cond: (context) => context.azureAuthorizationToken == null,
                 },
-                { target: "await" },
+                {
+                  target: "await",
+                  actions: ["createAudioContext", "ponyfillASR", "ponyfillTTS"],
+                },
               ],
             },
             waitForToken: {
@@ -111,7 +114,6 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               on: {
                 CLICK: {
                   target: "await2",
-                  actions: ["createAudioContext", "ponyfillASR", "ponyfillTTS"],
                 },
               },
             },
@@ -144,6 +146,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               on: {
                 SPEAK: ".wait",
               },
+              exit: "ttsStop",
               states: {
                 wait: {
                   on: {
@@ -421,7 +424,7 @@ function App({ domElement }: any) {
             let buffer = "";
             context.stream.onmessage = function (event: any) {
               let chunk = event.data;
-              console.debug("🍰", chunk);
+              // console.debug("🍰", chunk);
               if (chunk !== "[CLEAR]") {
                 buffer = buffer + chunk;
                 if (buffer.includes("[DONE]")) {
