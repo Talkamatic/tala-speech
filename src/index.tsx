@@ -87,6 +87,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
           on: { CLICK: "initialize" },
         },
         initialize: {
+          entry: "createAudioContext",
           initial: "start",
           on: {
             TTS_READY: "ready",
@@ -111,7 +112,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               on: {
                 CLICK: {
                   target: "await2",
-                  actions: ["createAudioContext", "ponyfillASR", "ponyfillTTS"],
+                  actions: ["ponyfillASR", "ponyfillTTS"],
                 },
               },
             },
