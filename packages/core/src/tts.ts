@@ -16,10 +16,10 @@ export const ttsMachine = createMachine(
     initial: "getToken",
     on: {
       READY: {
-        target: "ready",
+        target: ".ready",
         actions: sendParent("TTS_READY"),
       },
-      ERROR: "fail",
+      ERROR: ".fail",
     },
     states: {
       ready: {

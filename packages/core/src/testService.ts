@@ -1,5 +1,8 @@
 import { interpret } from "xstate";
-import { machine } from "tala-speech";
+import { machine } from "./index";
+import { inspect } from "@xstate/inspect";
+
+inspect();
 
 const externalContext = {
   parameters: {
@@ -9,25 +12,21 @@ const externalContext = {
     completeTimeout: 0,
     endpoint:
       "https://reading-buddy-serverless-handler.eu2.ddd.tala.cloud/interact/alma/",
+    azureKey: null,
+    deviceID: null,
     // azureKey: "2e15e033f605414bbbfe26cb631ab755",
   },
   segment: { pageNumber: 0, dddName: "cover" },
 };
 
-export default talaSpeechService = interpret(
+const talaSpeechService = interpret(
   machine.withContext({
     ...machine.context,
     ...externalContext,
   }),
-  {
-    devTools: process.env.NODE_ENV === "development" ? true : false,
-  }
-).onTransition((state, event) => {
-  console.log(state, event);
-});
+  { devTools: true }
+);
 
 talaSpeechService.start();
-talaSpeechService.send({
-  type: "TURNPAGE",
-  value: { pageNumber: 0, dddName: "sida_5" },
-});
+
+talaSpeechService.send("PREPARE");
