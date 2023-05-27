@@ -1,13 +1,13 @@
 import * as React from "react";
 import { machine } from "tala-speech";
 import { ttsMachine } from "tala-speech";
-import { asrMachine } from "tala-speech";
-import { useInterpret, useMachine } from "@xstate/react";
+// import { asrMachine } from "tala-speech";
+import { useMachine, useActor, useActorRef, useSelector } from "@xstate/react";
 import { interpret } from "xstate";
 
-import { inspect } from "@xstate/inspect";
+// import { inspect } from "@xstate/inspect";
 
-inspect();
+// inspect();
 
 const externalContext = {
   parameters: {
@@ -24,29 +24,24 @@ const externalContext = {
   segment: { pageNumber: 0, dddName: "cover" },
 };
 
-// const talaSpeechService = interpret(
-//   machine.withContext({
-//     ...machine.context,
-//     ...externalContext,
-//   }),
-//   { devTools: true }
-// );
-
-// talaSpeechService.start();
-
-// talaSpeechService.send("PREPARE");
-
 export const App = () => {
-  const [state, send, service] = useMachine(
-    machine.withContext({
-      ...machine.context,
-      ...externalContext,
-    }),
-    { devTools: true }
+  const sdsActorRef = useActorRef(machine, { input: { ...externalContext } });
+
+  // actor.start();
+  sdsActorRef.send({ type: "PREPARE" });
+  const sel = useSelector(sdsActorRef, (s) => s.context);
+
+  return (
+    <div>
+      <button
+        onClick={() => {
+          console.log(sel);
+          sdsActorRef.send({ type: "CLICK" });
+          console.log(sel);
+        }}
+      >
+        CLICK
+      </button>
+    </div>
   );
-
-  service.start();
-  send("PREPARE");
-
-  return <div></div>;
 };

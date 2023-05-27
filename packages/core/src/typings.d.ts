@@ -1,3 +1,5 @@
+import { SpeechSynthesisBoundaryType } from "microsoft-cognitiveservices-speech-sdk";
+
 declare module "web-speech-cognitive-services/lib/SpeechServices/TextToSpeech";
 declare module "web-speech-cognitive-services/lib/SpeechServices/SpeechToText";
 
@@ -24,12 +26,11 @@ interface SDSContext {
 }
 
 interface Settings {
-  ttsVoice: string;
-  ttsLexicon: string;
-  asrLanguage: string;
-  azureKey: string;
-  endpoint: string;
-  deviceID: string;
+  ttsLexicon?: string;
+  locale: string;
+  azureProxy: string;
+  // endpoint: string;
+  // deviceID: string;
   completeTimeout: number;
 }
 
@@ -37,7 +38,7 @@ interface DomainContext extends SDSContext {
   parameters: Settings;
 
   sessionObject: any;
-  hapticInput: string;
+  hapticInput?: string;
   segment?: Segment;
 
   tdmAll?: any;
@@ -102,7 +103,14 @@ interface TTSContext {
 }
 
 type TTSEvent =
-  | { type: "READY" }
+  | {
+      type: "READY";
+      value: {
+        tts: SpeechSynthesis;
+        utt: MySpeechSynthesisUtterance;
+        voice: SpeechSynthesisVoice;
+      };
+    }
   | { type: "ERROR" }
   | { type: "START"; value: string }
   | { type: "PAUSE" }

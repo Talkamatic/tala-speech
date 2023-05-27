@@ -1,5 +1,10 @@
-import { createMachine, sendParent, assign } from "xstate";
-import { getAuthorizationToken } from "./getAuthorizationToken";
+import {
+  createMachine,
+  sendParent,
+  assign,
+  fromPromise,
+  fromCallback,
+} from "xstate";
 
 import createSpeechSynthesisPonyfill from "web-speech-cognitive-services/lib/SpeechServices/TextToSpeech";
 
@@ -8,16 +13,29 @@ const REGION = "northeurope";
 export const ttsMachine = createMachine(
   {
     id: "tts",
-    predictableActionArguments: true,
-    schema: {
+    types: {
       context: {} as TTSContext,
       events: {} as TTSEvent,
     },
+    context: ({ input }) => ({
+      ttsVoice: input.ttsVoice,
+      audioCtx: input.audioCtx,
+      ttsLexicon: input.ttsLexicon,
+    }),
+
     initial: "getToken",
     on: {
       READY: {
         target: ".ready",
-        actions: sendParent("TTS_READY"),
+        actions: [
+          assign({
+            tts: ({ event }) => event.value.tts,
+            ttsUtterance: ({ event }) => event.value.utt,
+            voice: ({ event }) => event.value.voice,
+          }),
+          ({ context }) => console.log(context),
+          sendParent({ type: "TTS_READY" }),
+        ],
       },
       ERROR: ".fail",
     },
@@ -29,12 +47,16 @@ export const ttsMachine = createMachine(
       getToken: {
         invoke: {
           id: "getAuthorizationToken",
-          src: (context) => getAuthorizationToken(), // TODO: add key from the context here
+          src: fromPromise(() =>
+            fetch(new Request("https://tala.pratb.art/gettoken.php")).then(
+              (data) => data.text()
+            )
+          ),
           onDone: {
             target: "ponyfill",
             actions: [
-              assign((_context, event) => {
-                return { azureAuthorizationToken: event.data };
+              assign(({ event }) => {
+                return { azureAuthorizationToken: event.output };
               }),
             ],
           },
@@ -46,33 +68,12 @@ export const ttsMachine = createMachine(
       ponyfill: {
         invoke: {
           id: "ponyTTS",
-          src: (context, _event) => (callback, _onReceive) => {
-            const ponyfill = createSpeechSynthesisPonyfill({
-              audioContext: context.audioCtx,
-              credentials: {
-                region: REGION,
-                authorizationToken: context.azureAuthorizationToken,
-              },
-            });
-            const { speechSynthesis, SpeechSynthesisUtterance } = ponyfill;
-            context.tts = speechSynthesis;
-            context.ttsUtterance = SpeechSynthesisUtterance;
-            context.tts!.addEventListener("voiceschanged", () => {
-              context.tts!.cancel();
-              const voices = context.tts!.getVoices();
-              const voiceRe = RegExp(context.ttsVoice, "u");
-              const voice = voices.find((v: any) => voiceRe.test(v.name))!;
-              if (voice) {
-                context.voice = voice;
-                callback("READY");
-              } else {
-                console.error(
-                  `TTS_ERROR: Could not get voice for regexp ${voiceRe}`
-                );
-                callback("ERROR");
-              }
-            });
-          },
+          src: "ponyfill",
+          input: ({ context }) => ({
+            audioCtx: context.audioCtx,
+            azureAuthorizationToken: context.azureAuthorizationToken,
+            voice: context.ttsVoice,
+          }),
         },
       },
       speaking: {
@@ -82,29 +83,18 @@ export const ttsMachine = createMachine(
             target: "ready",
           },
         },
-        exit: sendParent("ENDSPEECH"),
+        exit: sendParent({ type: "ENDSPEECH" }),
         states: {
           go: {
             invoke: {
-              id: "ttsStart",
-              src: (context, _event) => (callback, _onReceive) => {
-                let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${
-                  context.voice!.name
-                }">`;
-                if (context.ttsLexicon) {
-                  content = content + `<lexicon uri="${context.ttsLexicon}"/>`;
-                }
-                content = content + `${context.ttsAgenda}</voice></speak>`;
-                if (context.ttsAgenda === ("" || " ")) {
-                  content = "";
-                }
-                const utterance = new context.ttsUtterance!(content);
-                utterance.voice = context.voice;
-                utterance.onend = () => {
-                  callback("END");
-                };
-                context.tts!.speak(utterance);
-              },
+              input: ({ context, event }) => ({
+                tts: context.tts,
+                ttsUtterance: context.ttsUtterance,
+                ttsLexicon: context.ttsLexicon,
+                voice: context.voice,
+                ttsAgenda: event.value,
+              }),
+              src: "speak",
             },
             on: {
               // SELECT: "#asrttsIdle",
@@ -125,11 +115,60 @@ export const ttsMachine = createMachine(
   {
     actions: {
       assignAgenda: assign({
-        ttsAgenda: (_c, e: any) => e.value,
+        ttsAgenda: ({ event }) => (event as any).value,
       }),
-      ttsStop: (context: TTSContext) => {
+      ttsStop: ({ context }) => {
         context.tts!.cancel();
       },
+    },
+    actors: {
+      ponyfill: fromCallback((sendBack, _receive, { input }) => {
+        const ponyfill = createSpeechSynthesisPonyfill({
+          audioContext: input.audioCtx,
+          credentials: {
+            region: REGION,
+            authorizationToken: input.azureAuthorizationToken,
+          },
+        });
+        const { speechSynthesis, SpeechSynthesisUtterance } = ponyfill;
+        const tts = speechSynthesis;
+        const ttsUtterance = SpeechSynthesisUtterance;
+        tts.addEventListener("voiceschanged", () => {
+          tts.cancel();
+          const voices = tts.getVoices();
+          const voiceRe = RegExp(input.ttsVoice, "u");
+          const voice = voices.find((v: any) => voiceRe.test(v.name))!;
+          if (voice) {
+            sendBack({
+              type: "READY",
+              value: { tts: tts, utt: ttsUtterance, voice: voice },
+            });
+            console.debug("TTS> ponyfill ready");
+          } else {
+            console.error(
+              `TTS_ERROR: Could not get voice for regexp ${voiceRe}`
+            );
+            sendBack({ type: "ERROR" });
+          }
+        });
+      }),
+      speak: fromCallback((sendBack, _receive, { input }) => {
+        console.log(input);
+        let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${input.voice}">`;
+        if (input.ttsLexicon) {
+          content = content + `<lexicon uri="${input.ttsLexicon}"/>`;
+        }
+        content = content + `${input.ttsAgenda}</voice></speak>`;
+        if (input.ttsAgenda === ("" || " ")) {
+          content = "";
+        }
+        const utterance = new input.ttsUtterance!(content);
+        utterance.voice = input.voice;
+        utterance.onend = () => {
+          sendBack({ type: "END" });
+        };
+        input.tts!.speak(utterance);
+      }),
     },
   }
 );

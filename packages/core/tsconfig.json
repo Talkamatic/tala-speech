@@ -1,10 +1,16 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2015",
-    "declaration": true,
-    "outDir": "./dist",
-    "lib": ["dom"]
-  },
-  "include": ["src/**/*"]
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es2015",
+        "strict": true,
+        "skipLibCheck": true,
+        "declaration": true,
+        "forceConsistentCasingInFileNames": true,
+        "outDir": "./dist",
+        "lib": ["dom"],
+        "moduleResolution": "node"
+    },
+    "include": ["src/**/*"],
+    "$schema": "https://json.schemastore.org/tsconfig",
+    "display": "Recommended"
 }

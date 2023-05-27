@@ -1,50 +1,77 @@
-import { AnyStateMachine, createMachine, assign, spawn, send } from "xstate";
-import { inspect } from "@xstate/inspect";
+import { createMachine, assign, fromPromise, raise } from "xstate";
 import { ttsMachine } from "./tts";
-import { asrMachine } from "./asr";
-import { tdmDmMachine } from "./tdmClient";
+// import { asrMachine } from "./asr";
+// import { tdmDmMachine } from "./tdmClient";
 
 const machine = createMachine(
   {
-    predictableActionArguments: true,
-    schema: {
+    types: {
       context: {} as DomainContext,
       events: {} as SDSEvent,
     },
+    context: ({ input }) => ({
+      parameters: input.parameters,
+      sessionObject: null,
+      hapticInput: null,
+      recResult: null,
+      azureAuthorizationToken: null,
+      audioCtx: null,
+      ttsRef: null,
+      asrRef: null,
+    }),
     id: "sds",
     type: "parallel",
     states: {
       dm: {
-        ...tdmDmMachine,
+        // ...tdmDmMachine,
+        initial: "idle",
+        states: {
+          idle: { on: { CLICK: "hello" } },
+          hello: {
+            entry: raise({
+              type: "SPEAK",
+              value: "hello world",
+            }),
+          },
+        },
       },
       asrTtsSpawner: {
         initial: "idle",
         states: {
-          idle: { on: { PREPARE: "spawn" } },
+          idle: { on: { PREPARE: "createAudioContext" } },
+          createAudioContext: {
+            invoke: {
+              id: "createAudioContext",
+              src: "audioContext",
+              onDone: {
+                target: "spawn",
+                actions: assign({ audioCtx: ({ event }) => event.output }),
+              },
+            },
+          },
           spawn: {
             entry: [
-              "createAudioContext",
               assign({
-                ttsRef: (c: DomainContext) => {
-                  return spawn(
-                    ttsMachine.withContext({
-                      ttsVoice: c.parameters.ttsVoice,
-                      audioCtx: c.audioCtx,
-                      ttsLexicon: c.parameters.ttsLexicon,
-                    })
-                  );
+                ttsRef: ({ context, spawn }) => {
+                  return spawn(ttsMachine, {
+                    input: {
+                      ttsVoice: context.parameters.ttsVoice,
+                      audioCtx: context.audioCtx,
+                      ttsLexicon: context.parameters.ttsLexicon,
+                    },
+                  });
                 },
               }),
-              assign({
-                asrRef: (c) => {
-                  return spawn(
-                    asrMachine.withContext({
-                      language: c.parameters.ttsVoice,
-                      audioCtx: c.audioCtx,
-                    })
-                  );
-                },
-              }),
+              // assign({
+              //   asrRef: ({ context, spawn }) => {
+              //     return spawn(asrMachine, {
+              //       input: {
+              //         language: context.parameters.ttsVoice,
+              //         audioCtx: context.audioCtx,
+              //       },
+              //     });
+              //   },
+              // }),
             ],
             // after: {
             //   30000: {
@@ -83,29 +110,31 @@ const machine = createMachine(
                   LISTEN: [{ target: "waitForRecogniser" }],
                   SPEAK: [
                     {
-                      actions: "logAgenda",
+                      // actions: "logAgenda",
                       target: "speaking",
                     },
                   ],
                 },
               },
               speaking: {
-                entry: (c, e: any) =>
-                  c.ttsRef.send({
-                    type: "START",
-                    value: e.value,
-                  }),
+                entry: [
+                  ({ context, event }) =>
+                    context.ttsRef.send({
+                      type: "START",
+                      value: "hello", // (event as any).value,
+                    }),
+                ],
                 on: { ENDSPEECH: "idle" },
               },
               waitForRecogniser: {
-                entry: (c, _e: any) =>
-                  c.asrRef.send({
+                entry: ({ context }) =>
+                  context.asrRef.send({
                     type: "START",
                     value: {
-                      noinputTimeout: c.tdmPassivity ?? 1000 * 3600 * 24,
+                      noinputTimeout: context.tdmPassivity ?? 1000 * 3600 * 24,
                       completeTimeout:
-                        c.tdmSpeechCompleteTimeout ||
-                        c.parameters.completeTimeout,
+                        context.tdmSpeechCompleteTimeout ||
+                        context.parameters.completeTimeout,
                     },
                   }),
                 on: {
@@ -116,7 +145,7 @@ const machine = createMachine(
                 on: {
                   RECOGNISED: {
                     target: "idle",
-                    actions: "logRecResult",
+                    // actions: "logRecResult",
                   },
                 },
               },
@@ -128,23 +157,35 @@ const machine = createMachine(
     },
   },
   {
-    actions: {
-      createAudioContext: (context) => {
-        context.audioCtx = new ((window as any).AudioContext ||
+    actors: {
+      audioContext: fromPromise(() => {
+        const audioContext = new ((window as any).AudioContext ||
           (window as any).webkitAudioContext)();
         navigator.mediaDevices
           .getUserMedia({ audio: true })
           .then(function (stream) {
-            context.audioCtx.createMediaStreamSource(stream);
+            audioContext.createMediaStreamSource(stream);
+          });
+        return audioContext;
+      }),
+    },
+    actions: {
+      createAudioContext: ({ context }) => {
+        const audioCtx = new ((window as any).AudioContext ||
+          (window as any).webkitAudioContext)();
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then(function (stream) {
+            audioCtx.createMediaStreamSource(stream);
           });
       },
-      logRecResult: (_c, e: any) => {
-        console.log("U>", e.value[0]["utterance"], {
-          confidence: e.value[0]["confidence"],
+      logRecResult: ({ event }) => {
+        console.log("U>", (event as any).value[0]["utterance"], {
+          confidence: (event as any).value[0]["confidence"],
         });
       },
-      logAgenda: (context, event: any) => {
-        console.log("S>", event.value, {
+      logAgenda: ({ context, event }) => {
+        console.log("S>", (event as any).value, {
           passivity: `${context.tdmPassivity ?? "∞"} ms`,
           speechCompleteTimeout: `${
             context.tdmSpeechCompleteTimeout ||
