@@ -424,7 +424,7 @@ function App({ domElement }: any) {
             let buffer = "";
             context.stream.onmessage = function (event: any) {
               let chunk = event.data;
-              // console.debug("🍰", chunk);
+              console.debug("🍰", chunk);
               if (chunk !== "[CLEAR]") {
                 buffer = buffer + chunk;
                 if (buffer.includes("[DONE]")) {
@@ -446,11 +446,11 @@ function App({ domElement }: any) {
                 }
 
                 const re = /(,\s)|([!.?](\s|$))/;
-                let m = buffer.match(re);
-                if (m && !context.tts.speaking) {
-                  let sep = m[0];
-                  let utt = buffer.split(sep)[0] + sep;
-                  buffer = buffer.split(sep).slice(1).join();
+                const m = buffer.match(re);
+                if (m) {
+                  const sep = m[0];
+                  const utt = buffer.split(sep)[0] + sep;
+                  buffer = buffer.split(sep).slice(1).join(sep);
                   const utterance = wrapSSML(utt, context);
                   console.log("S(chunk)>", utt);
                   context.tts.speak(utterance);
