@@ -321,7 +321,12 @@ const ReactiveButton = (props: Props): JSX.Element => {
         {promptImage && <img src={promptImage} alt={promptText} />}
       </figure>
       <div className="status" {...props}>
-        <button type="button" className={circleClass} style={{}}></button>
+        <button
+          type="button"
+          className={circleClass}
+          style={{}}
+          aria-label="Start"
+        ></button>
         <div className="status-text">{promptText}</div>
       </div>
     </div>
@@ -653,9 +658,7 @@ const wrapSSML = (text: string, context: SDSContext) => {
     content = content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
   }
   content = content + `<prosody rate="${context.parameters.speechRate}">`;
-  content =
-    content +
-    `${text}<mstts:silence  type="Tailing-exact" value="0ms"/></prosody></voice></speak>`;
+  content = content + `${text}</prosody></voice></speak>`;
 
   return new context.ttsUtterance(content);
 };
