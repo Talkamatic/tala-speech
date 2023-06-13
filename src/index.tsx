@@ -128,6 +128,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               on: {
                 LISTEN: [{ target: "waitForRecogniser" }],
                 SPEAKING_STREAM: "speakingStream",
+                STREAMING_CHUNK: "bufferedSpeaker",
                 SPEAK: [
                   {
                     target: "recognising.pause",
@@ -140,6 +141,55 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     }),
                   },
                 ],
+              },
+            },
+            bufferedSpeaker: {
+              entry: [
+                (_context, event) => console.debug(event),
+                assign((context, event) => {
+                  return { buffer: "" };
+                }),
+              ],
+              initial: "buffering",
+              states: {
+                buffering: {
+                  initial: "idle",
+                  entry: [
+                    (context, event) =>
+                      console.debug("🍰", {
+                        chunk: (event as any).value,
+                        buffer: context.buffer,
+                      }),
+                    assign((context, event) => {
+                      return {
+                        buffer: context.buffer + (event as any).value,
+                      };
+                    }),
+                  ],
+                  on: {
+                    STREAMING_CHUNK: {
+                      target: "buffering.hist",
+                    },
+                  },
+                  states: {
+                    hist: { type: "history" },
+                    idle: {
+                      entry: [
+                        (context, _event) =>
+                          console.debug("idle", context.buffer),
+                      ],
+                      always: [
+                        { target: "speaking", cond: "punctuationInBuffer" },
+                      ],
+                    },
+                    speaking: {
+                      entry: [
+                        (context, _event) =>
+                          console.debug("speaking", context.buffer),
+                      ],
+                    },
+                  },
+                },
               },
             },
             speakingStream: {
@@ -393,6 +443,11 @@ function App({ domElement }: any) {
           }
           return false;
         },
+        punctuationInBuffer: (context, _event) => {
+          const re = /(,\s)|([!.?](\s|$))/;
+          const m = context.buffer.match(re);
+          return !!m;
+        },
       },
       services: {
         getListeners: () => (send) => {
@@ -420,6 +475,23 @@ function App({ domElement }: any) {
         },
       },
       actions: {
+        createEventsFromChunks: (context: SDSContext) => {
+          if (!context.stream) {
+            context.stream = new EventSource(
+              "https://tar.dc1.pratb.art:1880/sse/" +
+                context.sessionObject.session_id
+            );
+            context.stream.onmessage = function (event: any) {
+              if (event.data !== "[CLEAR]") {
+                if (event.data == "[DONE]") {
+                  send({ type: "STREAMING_DONE" });
+                } else if (event.data == "[RESET]") {
+                  send({ type: "STREAMING_RESET" });
+                } else send({ type: "STREAMING_CHUNK", value: event.data });
+              }
+            };
+          }
+        },
         readServerEvents: (context: SDSContext) => {
           if (!context.stream) {
             context.stream = new EventSource(

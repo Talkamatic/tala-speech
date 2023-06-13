@@ -63,6 +63,7 @@ interface SDSContext {
   azureAuthorizationToken: string;
   audioCtx: any;
   stream: any;
+  buffer: string;
 }
 
 type SDSEvent =
@@ -85,4 +86,7 @@ type SDSEvent =
   | { type: "LISTEN" }
   | { type: "TIMEOUT" }
   | { type: "SPEAK"; value: string }
+    | { type: "STREAMING_CHUNK"; value: string }
+    | { type: "STREAMING_DONE" }
+    | { type: "STREAMING_RESET" }
   | { type: "SPEAKING_STREAM" };
