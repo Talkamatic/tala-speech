@@ -39,7 +39,6 @@ interface SDSContext {
   parameters: Settings;
   asr: SpeechRecognition;
   tts: SpeechSynthesis;
-  voice: SpeechSynthesisVoice;
   ttsUtterance: MySpeechSynthesisUtterance;
   recResult: Hypothesis[];
   hapticInput: string;
