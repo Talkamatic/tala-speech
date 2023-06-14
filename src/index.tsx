@@ -358,7 +358,8 @@ function App({ domElement }: any) {
       deviceID:
         domElement.getAttribute("data-device-id") || "tala-speech-default",
       endpoint: domElement.getAttribute("data-tdm-endpoint"),
-      ttsVoice: domElement.getAttribute("data-tts-voice") || "en-US",
+      ttsVoice:
+        domElement.getAttribute("data-tts-voice") || "en-US-DavisNeural",
       ttsLexicon: domElement.getAttribute("data-tts-lexicon"),
       speechRate: domElement.getAttribute("data-speech-rate") || "1",
       asrLanguage: domElement.getAttribute("data-asr-language") || "en-US",
@@ -435,7 +436,6 @@ function App({ domElement }: any) {
                 if (buffer.includes("[DONE]")) {
                   buffer = buffer.replace("[DONE]", "");
                   const utterance = wrapSSML(buffer || "", context);
-                  utterance.voice = context.voice;
                   console.log(`S(chunk)> ${buffer} [done speaking]`, {
                     passivity: `${context.tdmPassivity ?? "∞"} ms`,
                     speechCompleteTimeout: `${
@@ -508,7 +508,6 @@ function App({ domElement }: any) {
               context.parameters.completeTimeout
             } ms`,
           });
-          utterance.voice = context.voice;
           utterance.onend = () => send("TTS_END");
           context.tts.speak(utterance);
         }),
@@ -530,15 +529,10 @@ function App({ domElement }: any) {
           context.tts.addEventListener("voiceschanged", () => {
             context.tts.cancel();
             const voices = context.tts.getVoices();
-            const voiceRe = RegExp(context.parameters.ttsVoice, "u");
-            const voice = voices.find((v: any) => voiceRe.test(v.name))!;
-            if (voice) {
-              context.voice = voice;
+            if (voices.length > 0) {
               send("TTS_READY");
             } else {
-              console.error(
-                `TTS_ERROR: Could not get voice for regexp ${voiceRe}`
-              );
+              console.error(`TTS_ERROR: No voices available`);
               send("TTS_ERROR");
             }
           });
@@ -653,7 +647,7 @@ const wrapSSML = (text: string, context: SDSContext) => {
   if (["", " "].includes(text)) {
     return new context.ttsUtterance("");
   }
-  let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.voice.name}">`;
+  let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.parameters.ttsVoice}">`;
   if (context.parameters.ttsLexicon) {
     content = content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
   }
