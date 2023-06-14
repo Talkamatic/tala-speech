@@ -16,6 +16,7 @@ const { send, cancel } = actions;
 const TOKEN_ENDPOINT =
   "https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken";
 const REGION = "northeurope";
+const PUNCTUATION_REGEX = /(,\s)|([!.?](\s|$))/;
 
 const defaultPassivity = 5000;
 
@@ -127,8 +128,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               id: "asrttsIdle",
               on: {
                 LISTEN: [{ target: "waitForRecogniser" }],
-                SPEAKING_STREAM: "speakingStream",
-                STREAMING_CHUNK: "bufferedSpeaker",
+                STREAMING_CHUNK: "bufferedSpeaker.buffer.buffering",
                 SPEAK: [
                   {
                     target: "recognising.pause",
@@ -144,39 +144,59 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               },
             },
             bufferedSpeaker: {
+              type: "parallel",
               entry: [
                 (_context, event) => console.debug(event),
                 assign((context, event) => {
                   return { buffer: "" };
                 }),
               ],
-              initial: "buffering",
               states: {
-                buffering: {
-                  initial: "idle",
-                  entry: [
-                    (context, event) =>
-                      console.debug("🍰", {
-                        chunk: (event as any).value,
-                        buffer: context.buffer,
-                      }),
-                    assign((context, event) => {
-                      return {
-                        buffer: context.buffer + (event as any).value,
-                      };
-                    }),
-                  ],
-                  on: {
-                    STREAMING_CHUNK: {
-                      target: "buffering.hist",
+                buffer: {
+                  initial: "bufferIdle",
+                  states: {
+                    bufferIdle: {
+                      entry: [
+                        (_context, event) =>
+                          console.debug("enter bufferIdle", event),
+                      ],
+                      on: {
+                        STREAMING_CHUNK: {
+                          target: "buffering",
+                        },
+                      },
+                    },
+                    buffering: {
+                      on: {
+                        STREAMING_CHUNK: {
+                          target: "buffering",
+                        },
+                        STREAMING_DONE: {
+                          target: "bufferIdle",
+                        },
+                      },
+                      entry: [
+                        (context, event) =>
+                          console.debug("🍰", {
+                            chunk: (event as any).value,
+                            buffer: context.buffer,
+                          }),
+                        assign((context, event) => {
+                          return {
+                            buffer: context.buffer + (event as any).value,
+                          };
+                        }),
+                      ],
                     },
                   },
+                },
+                speaker: {
+                  initial: "speakingIdle",
                   states: {
-                    hist: { type: "history" },
-                    idle: {
+                    speakingIdle: {
                       entry: [
                         (context, _event) =>
-                          console.debug("idle", context.buffer),
+                          console.debug("speakingIdle", context.buffer),
                       ],
                       always: [
                         { target: "speaking", cond: "punctuationInBuffer" },
@@ -186,23 +206,27 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       entry: [
                         (context, _event) =>
                           console.debug("speaking", context.buffer),
+                        assign((context, event) => {
+                          const sep =
+                            context.buffer.match(PUNCTUATION_REGEX)![0];
+                          const utterance = context.buffer.split(sep)[0] + sep;
+                          const bufferContentAfterSeparator = context.buffer
+                            .split(sep)
+                            .slice(1)
+                            .join(sep);
+                          return {
+                            buffer: bufferContentAfterSeparator,
+                            ttsAgenda: utterance,
+                          };
+                        }),
+                        "ttsStart",
                       ],
-                    },
-                  },
-                },
-              },
-            },
-            speakingStream: {
-              on: {
-                SPEAK: ".wait",
-              },
-              exit: "ttsStop",
-              states: {
-                wait: {
-                  on: {
-                    TTS_END: {
-                      target: "#asrttsIdle",
-                      actions: send("ENDSPEECH"),
+                      on: {
+                        TTS_END: {
+                          target: "speakingIdle",
+                          actions: send("ENDSPEECH"),
+                        },
+                      },
                     },
                   },
                 },
@@ -352,7 +376,7 @@ const ReactiveButton = (props: Props): JSX.Element => {
       promptText = promptText || props.state.context.parameters.i18nListening;
       break;
     case props.state.matches({ asrtts: { ready: { speaking: "go" } } }) ||
-      props.state.matches({ asrtts: { ready: "speakingStream" } }):
+      props.state.matches({ asrtts: { ready: "bufferedSpeaker" } }):
       circleClass = "circle-speaking";
       promptText = promptText || props.state.context.parameters.i18nSpeaking;
       break;
@@ -408,7 +432,8 @@ function App({ domElement }: any) {
       deviceID:
         domElement.getAttribute("data-device-id") || "tala-speech-default",
       endpoint: domElement.getAttribute("data-tdm-endpoint"),
-      ttsVoice: domElement.getAttribute("data-tts-voice") || "en-US",
+      ttsVoice:
+        domElement.getAttribute("data-tts-voice") || "en-US-DavisNeural",
       ttsLexicon: domElement.getAttribute("data-tts-lexicon"),
       speechRate: domElement.getAttribute("data-speech-rate") || "1",
       asrLanguage: domElement.getAttribute("data-asr-language") || "en-US",
@@ -444,7 +469,7 @@ function App({ domElement }: any) {
           return false;
         },
         punctuationInBuffer: (context, _event) => {
-          const re = /(,\s)|([!.?](\s|$))/;
+          const re = PUNCTUATION_REGEX;
           const m = context.buffer.match(re);
           return !!m;
         },
@@ -507,7 +532,6 @@ function App({ domElement }: any) {
                 if (buffer.includes("[DONE]")) {
                   buffer = buffer.replace("[DONE]", "");
                   const utterance = wrapSSML(buffer || "", context);
-                  utterance.voice = context.voice;
                   console.log(`S(chunk)> ${buffer} [done speaking]`, {
                     passivity: `${context.tdmPassivity ?? "∞"} ms`,
                     speechCompleteTimeout: `${
@@ -580,7 +604,6 @@ function App({ domElement }: any) {
               context.parameters.completeTimeout
             } ms`,
           });
-          utterance.voice = context.voice;
           utterance.onend = () => send("TTS_END");
           context.tts.speak(utterance);
         }),
@@ -602,15 +625,10 @@ function App({ domElement }: any) {
           context.tts.addEventListener("voiceschanged", () => {
             context.tts.cancel();
             const voices = context.tts.getVoices();
-            const voiceRe = RegExp(context.parameters.ttsVoice, "u");
-            const voice = voices.find((v: any) => voiceRe.test(v.name))!;
-            if (voice) {
-              context.voice = voice;
+            if (voices.length > 0) {
               send("TTS_READY");
             } else {
-              console.error(
-                `TTS_ERROR: Could not get voice for regexp ${voiceRe}`
-              );
+              console.error(`TTS_ERROR: No voices available`);
               send("TTS_ERROR");
             }
           });
@@ -725,7 +743,7 @@ const wrapSSML = (text: string, context: SDSContext) => {
   if (["", " "].includes(text)) {
     return new context.ttsUtterance("");
   }
-  let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.voice.name}">`;
+  let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.parameters.ttsVoice}">`;
   if (context.parameters.ttsLexicon) {
     content = content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
   }
