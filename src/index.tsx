@@ -203,13 +203,8 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       ],
                       always: [
                           {
-                              in: "bufferingIdle",
-                              cond: "bufferIsEmpty",
-                              actions: send("ENDSPEECH"),
-                              target: "#asrttsIdle",
-                          },
-                          {
-                              target: "speaking",
+
+                                                    target: "speaking",
                               cond: "punctuationInBuffer"
                           },
                       ],
@@ -235,6 +230,11 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       ],
                       on: {
                           TTS_END: [
+                              {
+                                  cond: "bufferIsEmpty",
+                                  actions: send("ENDSPEECH"),
+                                  target: "#asrttsIdle",
+                              },
                               {
                                   target: "speakingIdle",
                               },
@@ -490,6 +490,11 @@ function App({ domElement }: any) {
             return event.value !== "[DONE]"
         },
         bufferIsEmpty: (context, event) => {
+            if (context.buffer === "") {
+                console.debug("empty!");
+            } else {
+                console.debug("nonempty!", context.buffer);
+            }
             return context.buffer === ""
         },
       },
