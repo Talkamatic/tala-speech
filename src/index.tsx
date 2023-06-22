@@ -16,6 +16,7 @@ const { send, cancel } = actions;
 const TOKEN_ENDPOINT =
   "https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken";
 const REGION = "northeurope";
+const PUNCTUATION_REGEX = /(,\s)|([!.?](\s|$))/;
 
 const defaultPassivity = 5000;
 
@@ -127,8 +128,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               id: "asrttsIdle",
               on: {
                 LISTEN: [{ target: "waitForRecogniser" }],
-                SPEAKING_STREAM: "speakingStream",
-                STREAMING_CHUNK: "bufferedSpeaker",
+                STREAMING_CHUNK: "bufferedSpeaker.buffer.buffering",
                 SPEAK: [
                   {
                     target: "recognising.pause",
@@ -144,65 +144,102 @@ const machine = Machine<SDSContext, any, SDSEvent>({
               },
             },
             bufferedSpeaker: {
+              type: "parallel",
               entry: [
-                (_context, event) => console.debug(event),
+                  (_context, event) => console.debug("enter bufferedSpeaker", event),
                 assign((context, event) => {
                   return { buffer: "" };
                 }),
               ],
-              initial: "buffering",
               states: {
-                buffering: {
-                  initial: "idle",
-                  entry: [
-                    (context, event) =>
-                      console.debug("🍰", {
-                        chunk: (event as any).value,
-                        buffer: context.buffer,
-                      }),
-                    assign((context, event) => {
-                      return {
-                        buffer: context.buffer + (event as any).value,
-                      };
-                    }),
-                  ],
-                  on: {
-                    STREAMING_CHUNK: {
-                      target: "buffering.hist",
+                buffer: {
+                  initial: "bufferIdle",
+                  states: {
+                    bufferIdle: {
+                      entry: [
+                        (_context, event) =>
+                          console.debug("enter bufferIdle", event),
+                      ],
+                      on: {
+                        STREAMING_CHUNK: {
+                          target: "buffering",
+                        },
+                      },
+                    },
+                    buffering: {
+                      on: {
+                          STREAMING_CHUNK: [
+                              {
+                                  target: "buffering",
+                                  cond: "chunkIsNotDone",
+                              },
+                              {
+                                  target: "bufferIdle",
+                              }
+                          ]
+                      },
+                      entry: [
+                       // (context, event) =>
+                          // console.debug("🍰", {
+                          //   chunk: (event as any).value,
+                          //   buffer: context.buffer,
+                          // }),
+                          assign((context, event) => {
+                              return {
+                                  buffer: context.buffer + (event as any).value,
+                              };
+                          }),
+                      ],
                     },
                   },
+                },
+                speaker: {
+                  initial: "speakingIdle",
                   states: {
-                    hist: { type: "history" },
-                    idle: {
+                    speakingIdle: {
                       entry: [
-                        (context, _event) =>
-                          console.debug("idle", context.buffer),
+                        (context, event) =>
+                              console.debug("speakingIdle", context.buffer, event),
                       ],
                       always: [
-                        { target: "speaking", cond: "punctuationInBuffer" },
+                          {
+                              in: "bufferingIdle",
+                              cond: "bufferIsEmpty",
+                              actions: send("ENDSPEECH"),
+                              target: "#asrttsIdle",
+                          },
+                          {
+                              target: "speaking",
+                              cond: "punctuationInBuffer"
+                          },
                       ],
                     },
                     speaking: {
                       entry: [
                         (context, _event) =>
                           console.debug("speaking", context.buffer),
+                        assign((context, event) => {
+                          const sep =
+                            context.buffer.match(PUNCTUATION_REGEX)![0];
+                          const utterance = context.buffer.split(sep)[0] + sep;
+                          const bufferContentAfterSeparator = context.buffer
+                            .split(sep)
+                            .slice(1)
+                            .join(sep);
+                          return {
+                            buffer: bufferContentAfterSeparator,
+                            ttsAgenda: utterance,
+                          };
+                        }),
+                        "ttsStart",
                       ],
-                    },
-                  },
-                },
-              },
-            },
-            speakingStream: {
-              on: {
-                SPEAK: ".wait",
-              },
-              exit: "ttsStop",
-              states: {
-                wait: {
-                  on: {
-                    TTS_END: {
-                      target: "#asrttsIdle",
-                      actions: send("ENDSPEECH"),
+                      on: {
+                          TTS_END: [
+                              {
+                                  target: "speakingIdle",
+                              },
+                          ]
+                      },
                     },
                   },
                 },
@@ -352,7 +389,7 @@ const ReactiveButton = (props: Props): JSX.Element => {
       promptText = promptText || props.state.context.parameters.i18nListening;
       break;
     case props.state.matches({ asrtts: { ready: { speaking: "go" } } }) ||
-      props.state.matches({ asrtts: { ready: "speakingStream" } }):
+      props.state.matches({ asrtts: { ready: "bufferedSpeaker" } }):
       circleClass = "circle-speaking";
       promptText = promptText || props.state.context.parameters.i18nSpeaking;
       break;
@@ -408,7 +445,8 @@ function App({ domElement }: any) {
       deviceID:
         domElement.getAttribute("data-device-id") || "tala-speech-default",
       endpoint: domElement.getAttribute("data-tdm-endpoint"),
-      ttsVoice: domElement.getAttribute("data-tts-voice") || "en-US",
+      ttsVoice:
+        domElement.getAttribute("data-tts-voice") || "en-US-DavisNeural",
       ttsLexicon: domElement.getAttribute("data-tts-lexicon"),
       speechRate: domElement.getAttribute("data-speech-rate") || "1",
       asrLanguage: domElement.getAttribute("data-asr-language") || "en-US",
@@ -439,14 +477,20 @@ function App({ domElement }: any) {
       guards: {
         emptyUtteranceAndPassivityNull: (context, event) => {
           if ("value" in event) {
-            return event.value === "" && context.tdmPassivity === null;
+              return event.value === "" && context.tdmPassivity === null;
           }
           return false;
         },
         punctuationInBuffer: (context, _event) => {
-          const re = /(,\s)|([!.?](\s|$))/;
+            const re = PUNCTUATION_REGEX;
           const m = context.buffer.match(re);
           return !!m;
+        },
+        chunkIsNotDone: (_context, event) => {
+            return event.value !== "[DONE]"
+        },
+        bufferIsEmpty: (context, event) => {
+            return context.buffer === ""
         },
       },
       services: {
@@ -483,9 +527,7 @@ function App({ domElement }: any) {
             );
             context.stream.onmessage = function (event: any) {
               if (event.data !== "[CLEAR]") {
-                if (event.data == "[DONE]") {
-                  send({ type: "STREAMING_DONE" });
-                } else if (event.data == "[RESET]") {
+                if (event.data == "[RESET]") {
                   send({ type: "STREAMING_RESET" });
                 } else send({ type: "STREAMING_CHUNK", value: event.data });
               }
@@ -507,7 +549,6 @@ function App({ domElement }: any) {
                 if (buffer.includes("[DONE]")) {
                   buffer = buffer.replace("[DONE]", "");
                   const utterance = wrapSSML(buffer || "", context);
-                  utterance.voice = context.voice;
                   console.log(`S(chunk)> ${buffer} [done speaking]`, {
                     passivity: `${context.tdmPassivity ?? "∞"} ms`,
                     speechCompleteTimeout: `${
@@ -580,7 +621,6 @@ function App({ domElement }: any) {
               context.parameters.completeTimeout
             } ms`,
           });
-          utterance.voice = context.voice;
           utterance.onend = () => send("TTS_END");
           context.tts.speak(utterance);
         }),
@@ -602,15 +642,10 @@ function App({ domElement }: any) {
           context.tts.addEventListener("voiceschanged", () => {
             context.tts.cancel();
             const voices = context.tts.getVoices();
-            const voiceRe = RegExp(context.parameters.ttsVoice, "u");
-            const voice = voices.find((v: any) => voiceRe.test(v.name))!;
-            if (voice) {
-              context.voice = voice;
+            if (voices.length > 0) {
               send("TTS_READY");
             } else {
-              console.error(
-                `TTS_ERROR: Could not get voice for regexp ${voiceRe}`
-              );
+              console.error(`TTS_ERROR: No voices available`);
               send("TTS_ERROR");
             }
           });
@@ -725,13 +760,16 @@ const wrapSSML = (text: string, context: SDSContext) => {
   if (["", " "].includes(text)) {
     return new context.ttsUtterance("");
   }
-  let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.voice.name}">`;
+  let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.parameters.ttsVoice}">`;
   if (context.parameters.ttsLexicon) {
     content = content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
   }
   content = content + `<prosody rate="${context.parameters.speechRate}">`;
-  content = content + `${text}</prosody></voice></speak>`;
-
+  content = content + `${text}</prosody>`;
+  content = content + `<mstts:silence type="Tailing-exact" value="0ms"/>`;
+  content = content + `</voice>`;
+  content = content + `</speak>`;
+  console.log(content);
   return new context.ttsUtterance(content);
 };
 
