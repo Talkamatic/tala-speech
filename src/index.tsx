@@ -197,44 +197,49 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                   initial: "speakingIdle",
                   states: {
                     speakingIdle: {
-                      entry: [
-                        (context, event) =>
-                              console.debug("speakingIdle", context.buffer, event),
-                      ],
-                      always: [
-                          {
-                              in: "bufferingIdle",
-                              cond: "bufferIsEmpty",
-                              actions: send("ENDSPEECH"),
-                              target: "#asrttsIdle",
-                          },
-                          {
-                              target: "speaking",
-                              cond: "punctuationInBuffer"
-                          },
-                      ],
+                        entry: [
+                          (context, event) =>
+                                console.debug("speakingIdle", context.buffer, event),
+                        ],
+                        always: [
+                            {
+                                target: "speaking",
+                                cond: "punctuationInBuffer"
+                            },
+                        ],
+                        after: {
+                            500: {
+                                target: "speakingIdle",
+                                actions: "addFiller",
+                            }
+                        }
                     },
                     speaking: {
-                      entry: [
-                        (context, _event) =>
-                          console.debug("speaking", context.buffer),
-                        assign((context, event) => {
-                          const sep =
-                            context.buffer.match(PUNCTUATION_REGEX)![0];
-                          const utterance = context.buffer.split(sep)[0] + sep;
-                          const bufferContentAfterSeparator = context.buffer
-                            .split(sep)
-                            .slice(1)
-                            .join(sep);
-                          return {
-                            buffer: bufferContentAfterSeparator,
-                            ttsAgenda: utterance,
-                          };
-                        }),
-                        "ttsStart",
-                      ],
-                      on: {
+                        entry: [
+                            (context, _event) =>
+                                console.debug("speaking", context.buffer),
+                            assign((context, event) => {
+                                const sep =
+                                    context.buffer.match(PUNCTUATION_REGEX)![0];
+                                const utterance = context.buffer.split(sep)[0] + sep;
+                                const bufferContentAfterSeparator = context.buffer
+                                    .split(sep)
+                                    .slice(1)
+                                    .join(sep);
+                                return {
+                                    buffer: bufferContentAfterSeparator,
+                                    ttsAgenda: utterance,
+                                };
+                            }),
+                            "ttsStart",
+                        ],
+                        on: {
                           TTS_END: [
+                              {
+                                  cond: "bufferIsEmpty",
+                                  actions: send("ENDSPEECH"),
+                                  target: "#asrttsIdle",
+                              },
                               {
                                   target: "speakingIdle",
                               },
@@ -490,6 +495,11 @@ function App({ domElement }: any) {
             return event.value !== "[DONE]"
         },
         bufferIsEmpty: (context, event) => {
+            if (context.buffer === "") {
+                console.debug("empty!");
+            } else {
+                console.debug("nonempty!", context.buffer);
+            }
             return context.buffer === ""
         },
       },
@@ -602,6 +612,9 @@ function App({ domElement }: any) {
           console.log("U>", context.recResult[0]["utterance"], {
             confidence: context.recResult[0]["confidence"],
           });
+        },
+        addFiller: (context: SDSContext) => {
+            context.buffer = context.buffer + " um."
         },
         recStart: asEffect((context) => {
           (context.asr.grammars as any).phrases = context.tdmAsrHints;
