@@ -482,7 +482,7 @@ function App({ domElement }: any) {
           return false;
         },
         punctuationInBuffer: (context, _event) => {
-            const re = PUNCTUATION_REGEX;
+          const re = PUNCTUATION_REGEX;
           const m = context.buffer.match(re);
           return !!m;
         },
