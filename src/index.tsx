@@ -157,8 +157,13 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                   states: {
                     bufferIdle: {
                       entry: [
-                        (_context, event) =>
-                          console.debug("enter bufferIdle", event),
+                          (context, event) =>
+                              console.debug("enter bufferIdle", event),
+                          assign((context, event) => {
+                              return {
+                                  streamingDone: true,
+                              };
+                          }),
                       ],
                       on: {
                         STREAMING_CHUNK: {
@@ -171,25 +176,27 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                           STREAMING_CHUNK: [
                               {
                                   target: "buffering",
-                                  cond: "chunkIsNotDone",
                               },
+                          ],
+                          STREAMING_DONE: [
                               {
                                   target: "bufferIdle",
                               }
                           ]
                       },
-                      entry: [
-                       (context, event) =>
-                          console.debug("🍰", {
-                            chunk: (event as any).value,
-                            buffer: context.buffer,
-                          }),
-                          assign((context, event) => {
-                              return {
-                                  buffer: context.buffer + (event as any).value,
-                              };
-                          }),
-                      ],
+                        entry: [
+                            (context, event) =>
+                                console.debug("🍰", {
+                                    chunk: (event as any).value,
+                                    buffer: context.buffer,
+                                }),
+                            assign((context, event) => {
+                                return {
+                                    buffer: context.buffer + (event as any).value,
+                                    streamingDone: false,
+                                };
+                            }),
+                        ],
                     },
                   },
                 },
@@ -236,7 +243,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         on: {
                           TTS_END: [
                               {
-                                  cond: "bufferIsEmpty",
+                                  cond: "streamingIsDone",
                                   actions: send("ENDSPEECH"),
                                   target: "#asrttsIdle",
                               },
@@ -491,11 +498,8 @@ function App({ domElement }: any) {
           const m = context.buffer.match(re);
           return !!m;
         },
-        chunkIsNotDone: (_context, event) => {
-            return event.value !== "[DONE]"
-        },
-        bufferIsEmpty: (context, event) => {
-            return context.buffer === ""
+        streamingIsDone: (context, event) => {
+            return context.streamingDone && context.buffer === ""
         },
       },
       services: {
@@ -532,7 +536,9 @@ function App({ domElement }: any) {
             );
             context.stream.onmessage = function (event: any) {
               if (event.data !== "[CLEAR]") {
-                if (event.data == "[RESET]") {
+                if (event.data == "[DONE]") {
+                  send({ type: "STREAMING_DONE" });
+                } else if (event.data == "[RESET]") {
                   send({ type: "STREAMING_RESET" });
                 } else send({ type: "STREAMING_CHUNK", value: event.data });
               }
