@@ -16,7 +16,7 @@ const { send, cancel } = actions;
 const TOKEN_ENDPOINT =
   "https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken";
 const REGION = "northeurope";
-const UTTERANCE_CHUNK_REGEX = /(^.*([!.?]|(,\s)))/;
+const UTTERANCE_CHUNK_REGEX = /(^.*([!?]+|([.,]+\s)))/;
 
 const defaultPassivity = 5000;
 
@@ -186,11 +186,6 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         ],
                       },
                       entry: [
-                        (context, event) =>
-                          console.debug("🍰", {
-                            chunk: (event as any).value,
-                            buffer: context.buffer,
-                          }),
                         assign((context, event) => {
                           return {
                             buffer: context.buffer + (event as any).value,
@@ -206,12 +201,11 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                   states: {
                     speakingIdle: {
                       entry: [
-                        (context, event) =>
-                          console.debug("speakingIdle", context.buffer, event),
+                        (context, event) => console.debug("speakingIdle"),
                       ],
                       always: [
                         {
-                          target: "speaking",
+                          target: "prepareSpeech",
                           cond: "chunkReadyToBeSpoken",
                         },
                       ],
@@ -222,35 +216,47 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         },
                       },
                     },
-                    speaking: {
+                    prepareSpeech: {
                       entry: [
-                        (context, _event) =>
-                          console.debug("speaking", context.buffer),
                         assign((context, event) => {
-                          const match = context.buffer.match(
-                            UTTERANCE_CHUNK_REGEX
-                          );
-                          const utterancePart = match[0];
-                          const restOfBuffer = context.buffer.substring(
-                            utterancePart.length
-                          );
-                          console.debug(
-                            "Original buffer: '" + context.buffer + "'"
-                          );
-                          console.debug(
-                            "Part of utterance to send to TTS: '" +
-                              utterancePart +
-                              "'"
-                          );
-                          console.debug("New buffer: '" + restOfBuffer + "'");
+                          var utterancePart;
+                          var restOfBuffer;
+                          if (context.streamingDone) {
+                            restOfBuffer = "";
+                            utterancePart = context.buffer;
+                          } else {
+                            const match = context.buffer.match(
+                              UTTERANCE_CHUNK_REGEX
+                            );
+                            utterancePart = match[0];
+                            restOfBuffer = context.buffer.substring(
+                              utterancePart.length
+                            );
+                          }
                           return {
                             buffer: restOfBuffer,
                             ttsAgenda: utterancePart,
                           };
                         }),
-                        "ttsStart",
                       ],
+                      always: [
+                        {
+                          target: "speak",
+                        },
+                      ],
+                    },
+                    speak: {
+                      entry: "ttsStart",
                       on: {
+                        PAUSE: { target: "paused" },
+                        CLICK: [
+                          // {
+                          //   target: "#asrttsIdle",
+                          //   actions: send("ENDSPEECH"),
+                          //   cond: (context) => context.parameters.clickToSkip,
+                          // },
+                          { target: "paused" },
+                        ],
                         TTS_END: [
                           {
                             cond: "streamingIsDone",
@@ -261,6 +267,13 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                             target: "speakingIdle",
                           },
                         ],
+                      },
+                      exit: "ttsStop",
+                    },
+                    paused: {
+                      on: {
+                        CLICK: "speak",
+                        SELECT: "#asrttsIdle",
                       },
                     },
                   },
@@ -403,7 +416,10 @@ const ReactiveButton = (props: Props): JSX.Element => {
       props.state.matches({ dm: "fail" }):
       break;
     case props.state.matches({ asrtts: { ready: { recognising: "pause" } } }) ||
-      props.state.matches({ asrtts: { ready: { speaking: "paused" } } }):
+      props.state.matches({ asrtts: { ready: { speaking: "paused" } } }) ||
+      props.state.matches({
+        asrtts: { ready: { bufferedSpeaker: { speaker: "paused" } } },
+      }):
       promptText = props.state.context.parameters.i18nClickToContinue;
       break;
     case props.state.matches({ asrtts: { ready: "recognising" } }):
@@ -504,8 +520,12 @@ function App({ domElement }: any) {
           return false;
         },
         chunkReadyToBeSpoken: (context, _event) => {
+          if (context.streamingDone) {
+            return true;
+          }
           const re = UTTERANCE_CHUNK_REGEX;
           const m = context.buffer.match(re);
+
           return !!m;
         },
         streamingIsDone: (context, event) => {
@@ -555,50 +575,6 @@ function App({ domElement }: any) {
             };
           }
         },
-        readServerEvents: (context: SDSContext) => {
-          if (!context.stream) {
-            context.stream = new EventSource(
-              "https://tar.dc1.pratb.art:1880/sse/" +
-                context.sessionObject.session_id
-            );
-            let buffer = "";
-            context.stream.onmessage = function (event: any) {
-              let chunk = event.data;
-              console.debug("🍰", chunk);
-              if (chunk !== "[CLEAR]") {
-                buffer = buffer + chunk;
-                if (buffer.includes("[DONE]")) {
-                  buffer = buffer.replace("[DONE]", "");
-                  const utterance = wrapSSML(buffer || "", context);
-                  console.log(`S(chunk)> ${buffer} [done speaking]`, {
-                    passivity: `${context.tdmPassivity ?? "∞"} ms`,
-                    speechCompleteTimeout: `${
-                      context.tdmSpeechCompleteTimeout ||
-                      context.parameters.completeTimeout
-                    } ms`,
-                  });
-                  context.tts.speak(utterance);
-                  buffer = "";
-                  utterance.onend = () => {
-                    send("TTS_END");
-                  };
-                }
-
-                const re = /(,\s)|([!.?](\s|$))/;
-                const m = buffer.match(re);
-                if (m) {
-                  const sep = m[0];
-                  const utt = buffer.split(sep)[0] + sep;
-                  buffer = buffer.split(sep).slice(1).join(sep);
-                  const utterance = wrapSSML(utt, context);
-                  console.log("S(chunk)>", utt);
-                  context.tts.speak(utterance);
-                  send("SPEAKING_STREAM");
-                }
-              }
-            };
-          }
-        },
         createAudioContext: (context: SDSContext) => {
           context.audioCtx = new ((window as any).AudioContext ||
             (window as any).webkitAudioContext)();
@@ -625,7 +601,9 @@ function App({ domElement }: any) {
           });
         },
         addFiller: (context: SDSContext) => {
-          context.buffer = context.buffer + " um.";
+          if (context.buffer.charAt(context.buffer.length - 1) !== ".") {
+            context.buffer = context.buffer + " um, ";
+          }
         },
         recStart: asEffect((context) => {
           (context.asr.grammars as any).phrases = context.tdmAsrHints;
