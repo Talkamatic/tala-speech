@@ -16,7 +16,7 @@ const { send, cancel } = actions;
 const TOKEN_ENDPOINT =
   "https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken";
 const REGION = "northeurope";
-const PUNCTUATION_REGEX = /(,\s)|([!.?](\s|$))/;
+const UTTERANCE_CHUNK_REGEX = /(^.*([!.?]|(,\s)))/;
 
 const defaultPassivity = 5000;
 
@@ -179,11 +179,11 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                           ]
                       },
                       entry: [
-                       // (context, event) =>
-                          // console.debug("🍰", {
-                          //   chunk: (event as any).value,
-                          //   buffer: context.buffer,
-                          // }),
+                       (context, event) =>
+                          console.debug("🍰", {
+                            chunk: (event as any).value,
+                            buffer: context.buffer,
+                          }),
                           assign((context, event) => {
                               return {
                                   buffer: context.buffer + (event as any).value,
@@ -204,7 +204,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         always: [
                             {
                                 target: "speaking",
-                                cond: "punctuationInBuffer"
+                                cond: "chunkReadyToBeSpoken"
                             },
                         ],
                         after: {
@@ -219,16 +219,16 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                             (context, _event) =>
                                 console.debug("speaking", context.buffer),
                             assign((context, event) => {
-                                const sep =
-                                    context.buffer.match(PUNCTUATION_REGEX)![0];
-                                const utterance = context.buffer.split(sep)[0] + sep;
-                                const bufferContentAfterSeparator = context.buffer
-                                    .split(sep)
-                                    .slice(1)
-                                    .join(sep);
+                                const match =
+                                    context.buffer.match(UTTERANCE_CHUNK_REGEX)
+                                const utterancePart = match[0]
+                                const restOfBuffer = context.buffer.substring(utterancePart.length)
+                                console.debug("Original buffer: '" + context.buffer + "'")
+                                console.debug("Part of utterance to send to TTS: '" + utterancePart + "'")
+                                console.debug("New buffer: '" + restOfBuffer + "'")
                                 return {
-                                    buffer: bufferContentAfterSeparator,
-                                    ttsAgenda: utterance,
+                                    buffer: restOfBuffer,
+                                    ttsAgenda: utterancePart,
                                 };
                             }),
                             "ttsStart",
@@ -486,8 +486,8 @@ function App({ domElement }: any) {
           }
           return false;
         },
-        punctuationInBuffer: (context, _event) => {
-          const re = PUNCTUATION_REGEX;
+        chunkReadyToBeSpoken: (context, _event) => {
+          const re = UTTERANCE_CHUNK_REGEX;
           const m = context.buffer.match(re);
           return !!m;
         },
@@ -495,11 +495,6 @@ function App({ domElement }: any) {
             return event.value !== "[DONE]"
         },
         bufferIsEmpty: (context, event) => {
-            if (context.buffer === "") {
-                console.debug("empty!");
-            } else {
-                console.debug("nonempty!", context.buffer);
-            }
             return context.buffer === ""
         },
       },
