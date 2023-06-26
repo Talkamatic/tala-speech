@@ -146,7 +146,8 @@ const machine = Machine<SDSContext, any, SDSEvent>({
             bufferedSpeaker: {
               type: "parallel",
               entry: [
-                  (_context, event) => console.debug("enter bufferedSpeaker", event),
+                (_context, event) =>
+                  console.debug("enter bufferedSpeaker", event),
                 assign((context, event) => {
                   return { buffer: "" };
                 }),
@@ -157,8 +158,13 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                   states: {
                     bufferIdle: {
                       entry: [
-                        (_context, event) =>
+                        (context, event) =>
                           console.debug("enter bufferIdle", event),
+                        assign((context, event) => {
+                          return {
+                            streamingDone: true,
+                          };
+                        }),
                       ],
                       on: {
                         STREAMING_CHUNK: {
@@ -168,27 +174,29 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     },
                     buffering: {
                       on: {
-                          STREAMING_CHUNK: [
-                              {
-                                  target: "buffering",
-                                  cond: "chunkIsNotDone",
-                              },
-                              {
-                                  target: "bufferIdle",
-                              }
-                          ]
+                        STREAMING_CHUNK: [
+                          {
+                            target: "buffering",
+                          },
+                        ],
+                        STREAMING_DONE: [
+                          {
+                            target: "bufferIdle",
+                          },
+                        ],
                       },
                       entry: [
-                       (context, event) =>
+                        (context, event) =>
                           console.debug("🍰", {
                             chunk: (event as any).value,
                             buffer: context.buffer,
                           }),
-                          assign((context, event) => {
-                              return {
-                                  buffer: context.buffer + (event as any).value,
-                              };
-                          }),
+                        assign((context, event) => {
+                          return {
+                            buffer: context.buffer + (event as any).value,
+                            streamingDone: false,
+                          };
+                        }),
                       ],
                     },
                   },
@@ -197,53 +205,62 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                   initial: "speakingIdle",
                   states: {
                     speakingIdle: {
-                        entry: [
-                          (context, event) =>
-                                console.debug("speakingIdle", context.buffer, event),
-                        ],
-                        always: [
-                            {
-                                target: "speaking",
-                                cond: "chunkReadyToBeSpoken"
-                            },
-                        ],
-                        after: {
-                            500: {
-                                target: "speakingIdle",
-                                actions: "addFiller",
-                            }
-                        }
+                      entry: [
+                        (context, event) =>
+                          console.debug("speakingIdle", context.buffer, event),
+                      ],
+                      always: [
+                        {
+                          target: "speaking",
+                          cond: "chunkReadyToBeSpoken",
+                        },
+                      ],
+                      after: {
+                        500: {
+                          target: "speakingIdle",
+                          actions: "addFiller",
+                        },
+                      },
                     },
                     speaking: {
-                        entry: [
-                            (context, _event) =>
-                                console.debug("speaking", context.buffer),
-                            assign((context, event) => {
-                                const match =
-                                    context.buffer.match(UTTERANCE_CHUNK_REGEX)
-                                const utterancePart = match[0]
-                                const restOfBuffer = context.buffer.substring(utterancePart.length)
-                                console.debug("Original buffer: '" + context.buffer + "'")
-                                console.debug("Part of utterance to send to TTS: '" + utterancePart + "'")
-                                console.debug("New buffer: '" + restOfBuffer + "'")
-                                return {
-                                    buffer: restOfBuffer,
-                                    ttsAgenda: utterancePart,
-                                };
-                            }),
-                            "ttsStart",
+                      entry: [
+                        (context, _event) =>
+                          console.debug("speaking", context.buffer),
+                        assign((context, event) => {
+                          const match = context.buffer.match(
+                            UTTERANCE_CHUNK_REGEX
+                          );
+                          const utterancePart = match[0];
+                          const restOfBuffer = context.buffer.substring(
+                            utterancePart.length
+                          );
+                          console.debug(
+                            "Original buffer: '" + context.buffer + "'"
+                          );
+                          console.debug(
+                            "Part of utterance to send to TTS: '" +
+                              utterancePart +
+                              "'"
+                          );
+                          console.debug("New buffer: '" + restOfBuffer + "'");
+                          return {
+                            buffer: restOfBuffer,
+                            ttsAgenda: utterancePart,
+                          };
+                        }),
+                        "ttsStart",
+                      ],
+                      on: {
+                        TTS_END: [
+                          {
+                            cond: "streamingIsDone",
+                            actions: send("ENDSPEECH"),
+                            target: "#asrttsIdle",
+                          },
+                          {
+                            target: "speakingIdle",
+                          },
                         ],
-                        on: {
-                          TTS_END: [
-                              {
-                                  cond: "bufferIsEmpty",
-                                  actions: send("ENDSPEECH"),
-                                  target: "#asrttsIdle",
-                              },
-                              {
-                                  target: "speakingIdle",
-                              },
-                          ]
                       },
                     },
                   },
@@ -482,7 +499,7 @@ function App({ domElement }: any) {
       guards: {
         emptyUtteranceAndPassivityNull: (context, event) => {
           if ("value" in event) {
-              return event.value === "" && context.tdmPassivity === null;
+            return event.value === "" && context.tdmPassivity === null;
           }
           return false;
         },
@@ -491,11 +508,8 @@ function App({ domElement }: any) {
           const m = context.buffer.match(re);
           return !!m;
         },
-        chunkIsNotDone: (_context, event) => {
-            return event.value !== "[DONE]"
-        },
-        bufferIsEmpty: (context, event) => {
-            return context.buffer === ""
+        streamingIsDone: (context, event) => {
+          return context.streamingDone && context.buffer === "";
         },
       },
       services: {
@@ -532,7 +546,9 @@ function App({ domElement }: any) {
             );
             context.stream.onmessage = function (event: any) {
               if (event.data !== "[CLEAR]") {
-                if (event.data == "[RESET]") {
+                if (event.data == "[DONE]") {
+                  send({ type: "STREAMING_DONE" });
+                } else if (event.data == "[RESET]") {
                   send({ type: "STREAMING_RESET" });
                 } else send({ type: "STREAMING_CHUNK", value: event.data });
               }
@@ -609,7 +625,7 @@ function App({ domElement }: any) {
           });
         },
         addFiller: (context: SDSContext) => {
-            context.buffer = context.buffer + " um."
+          context.buffer = context.buffer + " um.";
         },
         recStart: asEffect((context) => {
           (context.asr.grammars as any).phrases = context.tdmAsrHints;
