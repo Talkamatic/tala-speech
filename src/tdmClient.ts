@@ -145,7 +145,7 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
         onDone: [
           {
             target: "idle",
-            actions: [tdmAssign, "setAvailableDDDs", "readServerEvents"],
+            actions: [tdmAssign, "setAvailableDDDs", "createEventsFromChunks"],
             cond: (_ctx, event) => event.data.output,
           },
           {
