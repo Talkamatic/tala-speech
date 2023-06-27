@@ -146,9 +146,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
             bufferedSpeaker: {
               type: "parallel",
               entry: [
-                (_context, event) =>
-                  console.debug("enter bufferedSpeaker", event),
-                assign((context, event) => {
+                assign(() => {
                   return { buffer: "" };
                 }),
               ],
@@ -158,9 +156,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                   states: {
                     bufferIdle: {
                       entry: [
-                        (context, event) =>
-                          console.debug("enter bufferIdle", event),
-                        assign((context, event) => {
+                        assign(() => {
                           return {
                             streamingDone: true,
                           };
@@ -200,9 +196,6 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                   initial: "speakingIdle",
                   states: {
                     speakingIdle: {
-                      entry: [
-                        (context, event) => console.debug("speakingIdle"),
-                      ],
                       always: [
                         {
                           target: "prepareSpeech",
@@ -218,9 +211,9 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     },
                     prepareSpeech: {
                       entry: [
-                        assign((context, event) => {
-                          var utterancePart;
-                          var restOfBuffer;
+                        assign((context) => {
+                          let utterancePart;
+                          let restOfBuffer;
                           if (context.streamingDone) {
                             restOfBuffer = "";
                             utterancePart = context.buffer;
@@ -228,7 +221,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                             const match = context.buffer.match(
                               UTTERANCE_CHUNK_REGEX
                             );
-                            utterancePart = match[0];
+                            utterancePart = match![0];
                             restOfBuffer = context.buffer.substring(
                               utterancePart.length
                             );
@@ -528,7 +521,7 @@ function App({ domElement }: any) {
 
           return !!m;
         },
-        streamingIsDone: (context, event) => {
+        streamingIsDone: (context) => {
           return context.streamingDone && context.buffer === "";
         },
       },
