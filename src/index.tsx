@@ -243,11 +243,11 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       on: {
                         PAUSE: { target: "paused" },
                         CLICK: [
-                          // {
-                          //   target: "#asrttsIdle",
-                          //   actions: send("ENDSPEECH"),
-                          //   cond: (context) => context.parameters.clickToSkip,
-                          // },
+                          {
+                            target: "#asrttsIdle",
+                            actions: send("ENDSPEECH"),
+                            cond: (context) => context.parameters.clickToSkip,
+                          },
                           { target: "paused" },
                         ],
                         TTS_END: [
@@ -485,8 +485,7 @@ function App({ domElement }: any) {
       azureProxyURL: domElement.getAttribute("data-azure-proxy-url"),
       completeTimeout:
         Number(domElement.getAttribute("data-complete-timeout")) || 0,
-      clickToSkip:
-        Boolean(domElement.getAttribute("data-click-to-skip")) || false,
+      clickToSkip: domElement.getAttribute("data-click-to-skip") === "true",
       i18nClickToStart:
         domElement.getAttribute("data-i18n-click-to-start") ||
         "Click to start!",
