@@ -291,6 +291,8 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       };
                     }),
                     cancel("completeTimeout"),
+                    () =>
+                      console.debug("canceled sending RECOGNISED (ASRRESULT)"),
                   ],
                   target: ".match",
                 },
@@ -301,7 +303,13 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                 TIMEOUT: "#root.asrtts.ready.idle",
                 STARTSPEECH: {
                   target: ".inprogress",
-                  actions: cancel("completeTimeout"),
+                  actions: [
+                    cancel("completeTimeout"),
+                    () =>
+                      console.debug(
+                        "canceled sending RECOGNISED (STARTSPEECH)"
+                      ),
+                  ],
                 },
               },
               states: {
@@ -321,15 +329,23 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                 },
                 inprogress: {},
                 match: {
-                  entry: send(
-                    { type: "RECOGNISED" },
-                    {
-                      delay: (context) =>
+                  entry: [
+                    (context) =>
+                      console.debug(
+                        "RECOGNISED will be sent in (ms)",
                         context.tdmSpeechCompleteTimeout ||
-                        context.parameters.completeTimeout,
-                      id: "completeTimeout",
-                    }
-                  ),
+                          context.parameters.completeTimeout
+                      ),
+                    send(
+                      { type: "RECOGNISED" },
+                      {
+                        delay: (context) =>
+                          context.tdmSpeechCompleteTimeout ||
+                          context.parameters.completeTimeout,
+                        id: "completeTimeout",
+                      }
+                    ),
+                  ],
                 },
                 final: {
                   entry: send("RECOGNISED"),
@@ -607,7 +623,6 @@ function App({ domElement }: any) {
           /* console.log('Recognition stopped.'); */
         }),
         ttsStart: asEffect((context) => {
-          const utterance = wrapSSML(context.ttsAgenda, context);
           console.log("S>", context.ttsAgenda, {
             passivity: `${context.tdmPassivity ?? "∞"} ms`,
             speechCompleteTimeout: `${
@@ -615,7 +630,13 @@ function App({ domElement }: any) {
               context.parameters.completeTimeout
             } ms`,
           });
+          const utterance = wrapSSML(context.ttsAgenda, context);
           utterance.onend = () => send("TTS_END");
+          utterance.onstart = () => {
+            console.debug("[TTS] started (SpeechSynthesisUtterance.onstart)");
+            const event = new CustomEvent<any>("talaTtsStart");
+            window.dispatchEvent(event);
+          };
           context.tts.speak(utterance);
         }),
         ttsStop: asEffect((context) => {
@@ -671,6 +692,7 @@ function App({ domElement }: any) {
                   .map((x: SpeechRecognitionResult) => x[0].confidence)
                   .reduce((a: number, b: number) => a + b) /
                 event.results.length;
+              console.debug("[ASR] final result", event.results);
               send({
                 type: "ASRRESULT",
                 value: [
@@ -681,6 +703,7 @@ function App({ domElement }: any) {
                 ],
               });
             } else {
+              console.debug("[ASR] non-final result", event.results);
               send({ type: "STARTSPEECH" });
             }
           };
