@@ -3,9 +3,9 @@ import { MachineConfig, actions, AssignAction } from "xstate";
 const { send, assign, choose } = actions;
 
 const VERSION = "3.4";
-const startSession = (deviceID: string) => ({
+const startSession = (deviceID: string, sessionObjectAdditions: any) => ({
   version: VERSION,
-  session: { device_id: deviceID },
+  session: { device_id: deviceID, ...sessionObjectAdditions },
   request: {
     start_session: {},
   },
@@ -140,7 +140,10 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
         src: (context, _evt) =>
           tdmRequest(
             context.parameters.endpoint,
-            startSession(context.parameters.deviceID)
+            startSession(
+              context.parameters.deviceID,
+              context.parameters.sessionObjectAdditions
+            )
           ),
         onDone: [
           {

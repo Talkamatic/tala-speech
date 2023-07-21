@@ -491,6 +491,9 @@ function App({ domElement }: any) {
     parameters: {
       deviceID:
         domElement.getAttribute("data-device-id") || "tala-speech-default",
+      sessionObjectAdditions:
+        JSON.parse(domElement.getAttribute("data-session-object-additions")) ||
+        {},
       endpoint: domElement.getAttribute("data-tdm-endpoint"),
       ttsVoice:
         domElement.getAttribute("data-tts-voice") || "en-US-DavisNeural",
