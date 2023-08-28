@@ -203,7 +203,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         },
                       ],
                       after: {
-                        500: {
+                        FILLER_DELAY: {
                           target: "speakingIdle",
                           actions: "addFiller",
                         },
@@ -219,11 +219,11 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                             utterancePart = context.buffer;
                           } else {
                             const match = context.buffer.match(
-                              UTTERANCE_CHUNK_REGEX
+                              UTTERANCE_CHUNK_REGEX,
                             );
                             utterancePart = match![0];
                             restOfBuffer = context.buffer.substring(
-                              utterancePart.length
+                              utterancePart.length,
                             );
                           }
                           return {
@@ -307,7 +307,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     cancel("completeTimeout"),
                     () =>
                       console.debug(
-                        "canceled sending RECOGNISED (STARTSPEECH)"
+                        "canceled sending RECOGNISED (STARTSPEECH)",
                       ),
                   ],
                 },
@@ -321,7 +321,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         delay: (context) =>
                           context.tdmPassivity ?? 1000 * 3600 * 24,
                         id: "timeout",
-                      }
+                      },
                     ),
                   ],
                   on: {},
@@ -334,7 +334,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       console.debug(
                         "RECOGNISED will be sent in (ms)",
                         context.tdmSpeechCompleteTimeout ||
-                          context.parameters.completeTimeout
+                          context.parameters.completeTimeout,
                       ),
                     send(
                       { type: "RECOGNISED" },
@@ -343,7 +343,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                           context.tdmSpeechCompleteTimeout ||
                           context.parameters.completeTimeout,
                         id: "completeTimeout",
-                      }
+                      },
                     ),
                   ],
                 },
@@ -411,12 +411,12 @@ interface Props extends React.HTMLAttributes<HTMLElement> {
 const ReactiveButton = (props: Props): JSX.Element => {
   var promptText = (
     (props.state.context.tdmVisualOutputInfo || [{}]).find(
-      (el: any) => el.attribute === "name"
+      (el: any) => el.attribute === "name",
     ) || {}
   ).value;
   var promptImage = (
     (props.state.context.tdmVisualOutputInfo || [{}]).find(
-      (el: any) => el.attribute === "image"
+      (el: any) => el.attribute === "image",
     ) || {}
   ).value;
   var circleClass = "circle";
@@ -469,7 +469,7 @@ const ReactiveButton = (props: Props): JSX.Element => {
 
 const FigureButton = (props: Props): JSX.Element => {
   const caption = props.alternative.find(
-    (el: any) => el.attribute === "name"
+    (el: any) => el.attribute === "name",
   ).value;
   const imageSrc = (
     props.alternative.find((el: any) => el.attribute === "image") || {}
@@ -486,7 +486,7 @@ function App({ domElement }: any) {
   const tdmContext = {
     segment: { pageNumber: 0, dddName: "cover" },
     azureAuthorizationToken: domElement.getAttribute(
-      "data-azure-authorization-token"
+      "data-azure-authorization-token",
     ),
     parameters: {
       deviceID:
@@ -504,6 +504,7 @@ function App({ domElement }: any) {
       azureProxyURL: domElement.getAttribute("data-azure-proxy-url"),
       completeTimeout:
         Number(domElement.getAttribute("data-complete-timeout")) || 0,
+      fillerDelay: Number(domElement.getAttribute("data-filler-delay")) || 500,
       clickToSkip: domElement.getAttribute("data-click-to-skip") === "true",
       i18nClickToStart:
         domElement.getAttribute("data-i18n-click-to-start") ||
@@ -573,7 +574,7 @@ function App({ domElement }: any) {
           if (!context.stream) {
             context.stream = new EventSource(
               "https://tar.dc1.pratb.art:1880/sse/" +
-                context.sessionObject.session_id
+                context.sessionObject.session_id,
             );
             context.stream.onmessage = function (event: any) {
               if (event.data !== "[CLEAR]") {
@@ -581,7 +582,9 @@ function App({ domElement }: any) {
                   send({ type: "STREAMING_DONE" });
                 } else if (event.data == "[RESET]") {
                   send({ type: "STREAMING_RESET" });
-                } else send({ type: "STREAMING_CHUNK", value: event.data });
+                } else {
+                  send({ type: "STREAMING_CHUNK", value: event.data });
+                }
               }
             };
           }
@@ -712,7 +715,12 @@ function App({ domElement }: any) {
           };
         }),
       },
-    }
+      delays: {
+        FILLER_DELAY: (context) => {
+          return context.parameters.fillerDelay;
+        },
+      },
+    },
   );
 
   React.useEffect(() => {
@@ -763,7 +771,7 @@ function App({ domElement }: any) {
 const getAuthorizationToken = (context: SDSContext) => {
   if (context.parameters.azureProxyURL) {
     return fetch(new Request(context.parameters.azureProxyURL)).then((data) =>
-      data.text()
+      data.text(),
     );
   }
   return fetch(
@@ -772,7 +780,7 @@ const getAuthorizationToken = (context: SDSContext) => {
       headers: {
         "Ocp-Apim-Subscription-Key": context.parameters.azureKey!,
       },
-    })
+    }),
   ).then((data) => data.text());
 };
 
@@ -789,7 +797,7 @@ const wrapSSML = (text: string, context: SDSContext) => {
   content = content + `<mstts:silence type="Tailing-exact" value="0ms"/>`;
   content = content + `</voice>`;
   content = content + `</speak>`;
-  console.log(content);
+  console.debug("[TTS]", content);
   return new context.ttsUtterance(content);
 };
 

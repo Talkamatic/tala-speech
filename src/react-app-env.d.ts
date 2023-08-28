@@ -25,6 +25,7 @@ interface Settings {
   azureKey?: string;
   azureProxyURL?: string;
   completeTimeout: number;
+  fillerDelay: number;
   clickToSkip: boolean;
   i18nClickToStart: string;
   i18nListening: string;
