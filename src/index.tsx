@@ -206,6 +206,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         FILLER_DELAY: {
                           target: "speakingIdle",
                           actions: "addFiller",
+                          cond: (context) => context.buffer.includes(" "),
                         },
                       },
                     },
@@ -614,11 +615,15 @@ function App({ domElement }: any) {
             confidence: context.recResult[0]["confidence"],
           });
         },
-        addFiller: (context: SDSContext) => {
-          if (context.buffer.charAt(context.buffer.length - 1) !== ".") {
-            context.buffer = context.buffer + " um, ";
-          }
-        },
+        addFiller: assign((context) => {
+          const spaceIndex = context.buffer.lastIndexOf(" ");
+          return {
+            buffer:
+              context.buffer.substring(0, spaceIndex) +
+              " um," +
+              context.buffer.substring(spaceIndex),
+          };
+        }),
         recStart: asEffect((context) => {
           (context.asr.grammars as any).phrases = context.tdmAsrHints;
           context.asr.start();
