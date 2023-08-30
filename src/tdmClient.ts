@@ -208,7 +208,10 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
         utter: {
           initial: "prompt",
           on: {
-            RECOGNISED: "next",
+            PRELIMINARY_RECOGNITION: {
+              target: "next",
+              actions: [() => console.log("preliminary recognition")],
+            },
             SELECT: {
               target: "nextHaptic",
               actions: assign({ hapticInput: (_ctx, event) => event.value }),
@@ -251,29 +254,42 @@ export const tdmDmMachine: MachineConfig<SDSContext, any, SDSEvent> = {
           },
         },
         next: {
-          invoke: {
-            id: "nlInput",
-            src: (context, _evt) =>
-              tdmRequest(
-                context.parameters.endpoint,
-                nlInput(
-                  context.sessionObject,
-                  context.tdmActiveDDD,
-                  context.tdmOutput.moves,
-                  context.recResult
-                )
-              ),
-            onDone: [
-              {
-                target: "utter",
-                actions: tdmAssign,
-                cond: (_ctx, event) => event.data.output,
+          initial: "tdmInvocation",
+          states: {
+            tdmInvocation: {
+              invoke: {
+                // called on entering the "tdmInvocation" state
+                // add identifier to context object and to some kind of state variable
+                id: "nlInput",
+                src: (context, _evt) =>
+                  tdmRequest(
+                    context.parameters.endpoint,
+                    nlInput(
+                      context.sessionObject,
+                      context.tdmActiveDDD,
+                      context.tdmOutput.moves,
+                      context.recResult
+                    )
+                  ),
+                onDone: [
+                  {
+                    // check that context identifier for invocation is the same as for the state variable
+                    target: "result",
+                    actions: tdmAssign,
+                    cond: (_ctx, event) => event.data.output,
+                  },
+                  {
+                    target: "#root.dm.fail",
+                  },
+                ],
+                onError: { target: "#root.dm.fail" },
               },
-              {
-                target: "fail",
+            },
+            result: {
+              on: {
+                RECOGNISED: "#root.dm.tdm.utter",
               },
-            ],
-            onError: { target: "fail" },
+            },
           },
         },
         nextHaptic: {
