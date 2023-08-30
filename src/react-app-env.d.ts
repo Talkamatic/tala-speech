@@ -82,6 +82,7 @@ type SDSEvent =
   | { type: "ASR_START" }
   | { type: "STARTSPEECH" }
   | { type: "RECOGNISED" }
+  | { type: "PRELIMINARY_RECOGNITION" }
   | { type: "ASRRESULT"; value: Hypothesis[] }
   | { type: "ENDSPEECH" }
   | { type: "TTS_END" }

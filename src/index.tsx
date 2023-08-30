@@ -11,7 +11,7 @@ import createSpeechSynthesisPonyfill from "web-speech-cognitive-services/lib/Spe
 
 let dm = tdmDmMachine;
 
-const { send, cancel } = actions;
+const { send, cancel, raise } = actions;
 
 const TOKEN_ENDPOINT =
   "https://northeurope.api.cognitive.microsoft.com/sts/v1.0/issuetoken";
@@ -220,11 +220,11 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                             utterancePart = context.buffer;
                           } else {
                             const match = context.buffer.match(
-                              UTTERANCE_CHUNK_REGEX,
+                              UTTERANCE_CHUNK_REGEX
                             );
                             utterancePart = match![0];
                             restOfBuffer = context.buffer.substring(
-                              utterancePart.length,
+                              utterancePart.length
                             );
                           }
                           return {
@@ -308,7 +308,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                     cancel("completeTimeout"),
                     () =>
                       console.debug(
-                        "canceled sending RECOGNISED (STARTSPEECH)",
+                        "canceled sending RECOGNISED (STARTSPEECH)"
                       ),
                   ],
                 },
@@ -322,7 +322,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                         delay: (context) =>
                           context.tdmPassivity ?? 1000 * 3600 * 24,
                         id: "timeout",
-                      },
+                      }
                     ),
                   ],
                   on: {},
@@ -335,8 +335,9 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                       console.debug(
                         "RECOGNISED will be sent in (ms)",
                         context.tdmSpeechCompleteTimeout ||
-                          context.parameters.completeTimeout,
+                          context.parameters.completeTimeout
                       ),
+                    raise({ type: "PRELIMINARY_RECOGNITION" }),
                     send(
                       { type: "RECOGNISED" },
                       {
@@ -344,7 +345,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                           context.tdmSpeechCompleteTimeout ||
                           context.parameters.completeTimeout,
                         id: "completeTimeout",
-                      },
+                      }
                     ),
                   ],
                 },
@@ -412,12 +413,12 @@ interface Props extends React.HTMLAttributes<HTMLElement> {
 const ReactiveButton = (props: Props): JSX.Element => {
   var promptText = (
     (props.state.context.tdmVisualOutputInfo || [{}]).find(
-      (el: any) => el.attribute === "name",
+      (el: any) => el.attribute === "name"
     ) || {}
   ).value;
   var promptImage = (
     (props.state.context.tdmVisualOutputInfo || [{}]).find(
-      (el: any) => el.attribute === "image",
+      (el: any) => el.attribute === "image"
     ) || {}
   ).value;
   var circleClass = "circle";
@@ -470,7 +471,7 @@ const ReactiveButton = (props: Props): JSX.Element => {
 
 const FigureButton = (props: Props): JSX.Element => {
   const caption = props.alternative.find(
-    (el: any) => el.attribute === "name",
+    (el: any) => el.attribute === "name"
   ).value;
   const imageSrc = (
     props.alternative.find((el: any) => el.attribute === "image") || {}
@@ -487,7 +488,7 @@ function App({ domElement }: any) {
   const tdmContext = {
     segment: { pageNumber: 0, dddName: "cover" },
     azureAuthorizationToken: domElement.getAttribute(
-      "data-azure-authorization-token",
+      "data-azure-authorization-token"
     ),
     parameters: {
       deviceID:
@@ -575,7 +576,7 @@ function App({ domElement }: any) {
           if (!context.stream) {
             context.stream = new EventSource(
               "https://tar.dc1.pratb.art:1880/sse/" +
-                context.sessionObject.session_id,
+                context.sessionObject.session_id
             );
             context.stream.onmessage = function (event: any) {
               if (event.data !== "[CLEAR]") {
@@ -725,7 +726,7 @@ function App({ domElement }: any) {
           return context.parameters.fillerDelay;
         },
       },
-    },
+    }
   );
 
   React.useEffect(() => {
@@ -776,7 +777,7 @@ function App({ domElement }: any) {
 const getAuthorizationToken = (context: SDSContext) => {
   if (context.parameters.azureProxyURL) {
     return fetch(new Request(context.parameters.azureProxyURL)).then((data) =>
-      data.text(),
+      data.text()
     );
   }
   return fetch(
@@ -785,7 +786,7 @@ const getAuthorizationToken = (context: SDSContext) => {
       headers: {
         "Ocp-Apim-Subscription-Key": context.parameters.azureKey!,
       },
-    }),
+    })
   ).then((data) => data.text());
 };
 
