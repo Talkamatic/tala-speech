@@ -16,6 +16,7 @@ interface Segment {
 
 interface Settings {
   deviceID: string;
+  sessionObjectAdditions: any;
   endpoint: string;
   ttsVoice: string;
   ttsLexicon: string;
@@ -24,6 +25,7 @@ interface Settings {
   azureKey?: string;
   azureProxyURL?: string;
   completeTimeout: number;
+  fillerDelay: number;
   clickToSkip: boolean;
   i18nClickToStart: string;
   i18nListening: string;
@@ -39,7 +41,6 @@ interface SDSContext {
   parameters: Settings;
   asr: SpeechRecognition;
   tts: SpeechSynthesis;
-  voice: SpeechSynthesisVoice;
   ttsUtterance: MySpeechSynthesisUtterance;
   recResult: Hypothesis[];
   hapticInput: string;
@@ -63,6 +64,8 @@ interface SDSContext {
   azureAuthorizationToken: string;
   audioCtx: any;
   stream: any;
+  buffer: string;
+  streamingDone: boolean;
 }
 
 type SDSEvent =
@@ -85,4 +88,7 @@ type SDSEvent =
   | { type: "LISTEN" }
   | { type: "TIMEOUT" }
   | { type: "SPEAK"; value: string }
+  | { type: "STREAMING_CHUNK"; value: string }
+  | { type: "STREAMING_DONE" }
+  | { type: "STREAMING_RESET" }
   | { type: "SPEAKING_STREAM" };
