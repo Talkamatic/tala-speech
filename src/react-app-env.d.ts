@@ -37,6 +37,11 @@ interface MySpeechSynthesisUtterance extends SpeechSynthesisUtterance {
   new (s: string?): MySpeechSynthesisUtterance;
 }
 
+interface Agenda {
+  utterance: string;
+  voice: string;
+}
+
 interface SDSContext {
   parameters: Settings;
   asr: SpeechRecognition;
@@ -45,7 +50,7 @@ interface SDSContext {
   recResult: Hypothesis[];
   hapticInput: string;
   nluData: any;
-  ttsAgenda: string;
+  ttsAgenda: Agenda;
   query: string;
   snippet: string;
   sessionObject: any;
@@ -87,7 +92,7 @@ type SDSEvent =
   | { type: "TTS_END" }
   | { type: "LISTEN" }
   | { type: "TIMEOUT" }
-  | { type: "SPEAK"; value: string }
+  | { type: "SPEAK"; value: Agenda }
   | { type: "STREAMING_CHUNK"; value: string }
   | { type: "STREAMING_DONE" }
   | { type: "STREAMING_RESET" }
