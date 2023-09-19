@@ -790,6 +790,12 @@ const getAuthorizationToken = (context: SDSContext) => {
 };
 
 const wrapSSML = (text: string, context: SDSContext) => {
+  const xmlEscapedText = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
   if (["", " "].includes(text)) {
     return new context.ttsUtterance("");
   }
@@ -798,7 +804,7 @@ const wrapSSML = (text: string, context: SDSContext) => {
     content = content + `<lexicon uri="${context.parameters.ttsLexicon}"/>`;
   }
   content = content + `<prosody rate="${context.parameters.speechRate}">`;
-  content = content + `${text}</prosody>`;
+  content = content + `${xmlEscapedText}</prosody>`;
   content = content + `<mstts:silence type="Tailing-exact" value="0ms"/>`;
   content = content + `</voice>`;
   content = content + `</speak>`;
