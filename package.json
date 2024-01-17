@@ -1,21 +1,20 @@
 {
-    "name": "tala-speech",
-    "version": "2.0.0",
-    "license": "GPL-3.0",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "parcel index.html"
-    },
-    "author": "Talkamatic AB",
-    "devDependencies": {
-        "buffer": "^5.5.0||^6.0.0",
-        "parcel": "^2.9.2",
-        "parcel-reporter-static-files-copy": "^1.5.0",
-        "process": "^0.11.10",
-        "typescript": "^5.0.4"
-    },
-    "dependencies": {
-        "xstate": "^5.0.0-beta.13",
-        "speechstate": "link:../speechstate/dist"
-    }
+  "name": "tala-speech",
+  "version": "2.0.0",
+  "license": "GPL-3.0",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "author": "Talkamatic AB",
+  "packageManager": "yarn@4.0.2",
+  "dependencies": {
+    "speechstate": "^2.0.0-beta.2",
+    "typescript": "^5.3.3",
+    "typescript-language-server": "^4.3.1",
+    "vite": "^5.0.11",
+    "xstate": "^5.5.1"
+  }
 }

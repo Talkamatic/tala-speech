@@ -1,0 +1,10 @@
+#+TITLE: TalaSpeech 2.0 interface description
+TalaSpeech [[https://stately.ai/docs/actors][actor]] can be accessed through ~window.TalaSpeech~.
+
+Events to control TalaSpeech:
+- ~window.TalaSpeech.send({type: "SETTINGS", value: TBD})~ :: configure TalaSpeech 
+- ~window.TalaSpeech.send({type: "TURNPAGE", value: "onboarding"})~ :: "turn
+  page" to get to a new dialogue
+- ~window.TalaSpeech.send({type: "PREPARE"})~ :: prepare ASR and TTS resources
+- ...
+
