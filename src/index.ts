@@ -1,5 +1,6 @@
 import { assign, createActor, setup, fromPromise, AnyActor } from "xstate";
 import { speechstate, Agenda, Hypothesis } from "speechstate";
+import { AZURE_PROXY, ENDPOINT } from "./credentials.ts";
 
 declare global {
   interface Window {
@@ -36,7 +37,7 @@ interface DMContext {
 type DMEvent =
   | SSDMEvent
   | { type: "TURNPAGE"; value: string }
-  | { type: "CLICK" };
+  | { type: "START" };
 
 type SSDMEvent = // todo move to SpeechState
 
@@ -76,6 +77,27 @@ const startSessionBody = (deviceID: string, sessionObjectAdditions: any) => ({
     start_session: {},
   },
 });
+const sendSegmentBody = (sessionObject: any, ddd: string) => ({
+  version: VERSION,
+  session: sessionObject,
+  request: {
+    semantic_input: {
+      interpretations: [
+        {
+          modality: "other",
+          moves: [
+            {
+              ddd: ddd,
+              perception_confidence: 1,
+              understanding_confidence: 1,
+              semantic_expression: "request(top)",
+            },
+          ],
+        },
+      ],
+    },
+  },
+});
 
 const dmMachine = setup({
   actions: {
@@ -85,12 +107,12 @@ const dmMachine = setup({
     }),
   },
 }).createMachine({
-  id: "dm",
-  initial: "getPages",
+  id: "DM",
+  initial: "GetPages",
   context: {
     settings: {
       deviceID: "tala-speech",
-      endpoint: "<needed>",
+      endpoint: ENDPOINT,
       sessionObjectAdditions: {},
     },
   },
@@ -102,13 +124,14 @@ const dmMachine = setup({
     TURNPAGE: {
       actions: [assign({ segment: ({ event }) => event.value })],
     },
-    STOP: ".stopped",
+    STOP: ".Stopped",
   },
   entry: assign({
     spstRef: ({ spawn }) => {
       return spawn(speechstate, {
+        // TODO: turn this into event-based (CREATE?)
         input: {
-          azureCredentials: "<needed>",
+          azureCredentials: AZURE_PROXY,
           asrDefaultCompleteTimeout: 0,
           locale: "en-US",
           asrDefaultNoInputTimeout: 5000,
@@ -118,10 +141,7 @@ const dmMachine = setup({
     },
   }),
   states: {
-    stopped: { on: { CLICK: "getPages" } },
-    fail: {},
-    idle: {},
-    getPages: {
+    GetPages: {
       invoke: {
         id: "startSession",
         input: ({ context }) => ({
@@ -137,7 +157,7 @@ const dmMachine = setup({
         ),
         onDone: [
           {
-            target: "idle",
+            target: "Idle",
             actions: [
               { type: "tdmAssign", params: ({ event }) => event.output },
               assign({
@@ -148,13 +168,53 @@ const dmMachine = setup({
             guard: ({ event }) => !!event.output,
           },
           {
-            target: "fail",
+            target: "Fail",
           },
         ],
-        onError: { target: "fail" },
+        onError: { target: "Fail" },
       },
     },
-    prepare: {
+    Idle: { on: { START: "Active" } },
+    Active: {
+      initial: "Start",
+      states: {
+        Start: {
+          invoke: {
+            id: "sendSegment",
+            input: ({ context }) => ({
+              endpoint: context.settings.endpoint,
+              sessionObject: context.tdmState.session,
+              segment: context.segment,
+            }),
+            src: fromPromise(({ input }) =>
+              tdmRequest(
+                input.endpoint,
+                sendSegmentBody(input.sessionObject, input.segment),
+              ),
+            ),
+            onDone: [
+              {
+                target: "Next",
+                actions: [
+                  { type: "tdmAssign", params: ({ event }) => event.output },
+                ],
+                guard: ({ event }) => !!event.output,
+              },
+              {
+                target: "#DM.Fail",
+              },
+            ],
+            onError: { target: "#DM.Fail" },
+          },
+        },
+        Next: {},
+      },
+    },
+    Stopped: { on: { START: "GetPages" } },
+    Fail: {},
+
+    /////////////////////////////
+    Prepare: {
       entry: [
         ({ context }) =>
           context.spstRef.send({
