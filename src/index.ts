@@ -1,6 +1,15 @@
 import { assign, createActor, setup, fromPromise, AnyActor } from "xstate";
-import { speechstate, Agenda, Hypothesis } from "speechstate";
-import { AZURE_PROXY, ENDPOINT } from "./credentials.ts";
+import {
+  speechstate,
+  Agenda,
+  Hypothesis,
+  RecogniseParameters,
+} from "speechstate";
+import { AZURE_PROXY, ENDPOINT } from "./credentials";
+import { createSkyInspector } from "@statelyai/inspect";
+import { isSemicolonClassElement } from "typescript";
+
+const { inspect } = createSkyInspector();
 
 declare global {
   interface Window {
@@ -8,35 +17,25 @@ declare global {
   }
 }
 
-interface Settings {
+interface TDMSettings {
   deviceID: string;
   sessionObjectAdditions: any;
   endpoint: string;
-  ttsVoice: string;
-  ttsLexicon: string;
-  speechRate: string;
-  asrLanguage: string;
   azureKey?: string;
   azureProxyURL?: string;
-  completeTimeout: number;
-  fillerDelay: number;
-  clickToSkip: boolean;
-  i18nClickToStart: string;
-  i18nListening: string;
-  i18nSpeaking: string;
-  i18nClickToContinue: string;
 }
 
 interface DMContext {
-  settings: Settings;
+  tdmSettings: TDMSettings;
   spstRef?: any;
   segment?: string;
-  tdmState: any;
+  tdmState?: any;
+  lastResult?: Hypothesis[];
 }
 
 type DMEvent =
   | SSDMEvent
-  | { type: "TURNPAGE"; value: string }
+  | { type: "TURN_PAGE"; value: string }
   | { type: "START" };
 
 type SSDMEvent = // todo move to SpeechState
@@ -46,7 +45,7 @@ type SSDMEvent = // todo move to SpeechState
     | { type: "CONTROL" }
     | { type: "STOP" }
     | { type: "SPEAK"; value: Agenda }
-    | { type: "LISTEN" } // TODO parameters!
+    | { type: "LISTEN"; value: RecogniseParameters }
     | { type: "TTS_STARTED" }
     | { type: "TTS_ERROR" }
     | { type: "SPEAK_COMPLETE" }
@@ -69,16 +68,13 @@ async function tdmRequest(endpoint: string, requestBody: any) {
   ).then((data) => data.json());
 }
 
-const VERSION = "3.4";
 const startSessionBody = (deviceID: string, sessionObjectAdditions: any) => ({
-  version: VERSION,
   session: { device_id: deviceID, ...sessionObjectAdditions },
   request: {
     start_session: {},
   },
 });
 const sendSegmentBody = (sessionObject: any, ddd: string) => ({
-  version: VERSION,
   session: sessionObject,
   request: {
     semantic_input: {
@@ -98,38 +94,108 @@ const sendSegmentBody = (sessionObject: any, ddd: string) => ({
     },
   },
 });
+const nlInputBody = (
+  sessionObject: any,
+  ddd: string,
+  moves: string[],
+  hypotheses: Hypothesis[],
+) => ({
+  session: {
+    ...sessionObject,
+    ddd: ddd,
+    moves: moves,
+  },
+  request: {
+    natural_language_input: {
+      modality: "speech",
+      hypotheses: hypotheses,
+    },
+  },
+});
+const passivityBody = (sessionObject: any) => ({
+  session: sessionObject,
+  request: {
+    passivity: {},
+  },
+});
 
 const dmMachine = setup({
+  types: {
+    context: {} as DMContext,
+    events: {} as DMEvent,
+  },
+
   actions: {
     tdmAssign: assign((_, params: any) => {
       console.debug("[tdmState]", params);
       return { tdmState: params };
     }),
   },
+  actors: {
+    startSession: fromPromise<
+      any,
+      { endpoint: string; deviceID: string; sessionObjectAdditions: any }
+    >(({ input }) =>
+      tdmRequest(
+        input.endpoint,
+        startSessionBody(input.deviceID, input.sessionObjectAdditions),
+      ),
+    ),
+    sendSegment: fromPromise<
+      any,
+      { endpoint: string; sessionObject: any; segment: string }
+    >(({ input }) =>
+      tdmRequest(
+        input.endpoint,
+        sendSegmentBody(input.sessionObject, input.segment),
+      ),
+    ),
+    nlInput: fromPromise<
+      any,
+      {
+        endpoint: string;
+        sessionObject: any;
+        activeDDD: string;
+        moves: string[];
+        lastResult: Hypothesis[];
+      }
+    >(({ input }) =>
+      tdmRequest(
+        input.endpoint,
+        nlInputBody(
+          input.sessionObject,
+          input.activeDDD,
+          input.moves,
+          input.lastResult,
+        ),
+      ),
+    ),
+    passivity: fromPromise<any, { endpoint: string; sessionObject: any }>(
+      ({ input }) =>
+        tdmRequest(input.endpoint, passivityBody(input.sessionObject)),
+    ),
+  },
 }).createMachine({
   id: "DM",
   initial: "GetPages",
   context: {
-    settings: {
+    tdmSettings: {
       deviceID: "tala-speech",
       endpoint: ENDPOINT,
       sessionObjectAdditions: {},
     },
   },
-  types: {} as {
-    context: DMContext;
-    events: DMEvent;
-  },
   on: {
-    TURNPAGE: {
+    TURN_PAGE: {
       actions: [assign({ segment: ({ event }) => event.value })],
     },
     STOP: ".Stopped",
   },
   entry: assign({
-    spstRef: ({ spawn }) => {
-      return spawn(speechstate, {
+    spstRef: ({ spawn }) =>
+      spawn(speechstate, {
         // TODO: turn this into event-based (CREATE?)
+        id: "speechstate",
         input: {
           azureCredentials: AZURE_PROXY,
           asrDefaultCompleteTimeout: 0,
@@ -137,27 +203,20 @@ const dmMachine = setup({
           asrDefaultNoInputTimeout: 5000,
           ttsDefaultVoice: "en-US-DavisNeural",
         },
-      });
-    },
+      }),
   }),
   states: {
     GetPages: {
       invoke: {
-        id: "startSession",
+        src: "startSession",
         input: ({ context }) => ({
-          endpoint: context.settings.endpoint,
-          deviceID: context.settings.deviceID,
-          sessionObjectAdditions: context.settings.sessionObjectAdditions,
+          endpoint: context.tdmSettings.endpoint,
+          deviceID: context.tdmSettings.deviceID,
+          sessionObjectAdditions: context.tdmSettings.sessionObjectAdditions,
         }),
-        src: fromPromise(({ input }) =>
-          tdmRequest(
-            input.endpoint,
-            startSessionBody(input.deviceID, input.sessionObjectAdditions),
-          ),
-        ),
         onDone: [
           {
-            target: "Idle",
+            target: "Prepare",
             actions: [
               { type: "tdmAssign", params: ({ event }) => event.output },
               assign({
@@ -174,27 +233,36 @@ const dmMachine = setup({
         onError: { target: "Fail" },
       },
     },
+    Prepare: {
+      entry: [
+        ({ context }) =>
+          context.spstRef.send({
+            type: "PREPARE",
+          }),
+      ],
+      on: {
+        ASRTTS_READY: {
+          target: "Idle",
+          actions: () => console.debug("[SpSt→DM] ASRTTS_READY"),
+        },
+      },
+    },
     Idle: { on: { START: "Active" } },
+    End: { on: { START: "Active" } },
     Active: {
       initial: "Start",
       states: {
         Start: {
           invoke: {
-            id: "sendSegment",
+            src: "sendSegment",
             input: ({ context }) => ({
-              endpoint: context.settings.endpoint,
+              endpoint: context.tdmSettings.endpoint,
               sessionObject: context.tdmState.session,
               segment: context.segment,
             }),
-            src: fromPromise(({ input }) =>
-              tdmRequest(
-                input.endpoint,
-                sendSegmentBody(input.sessionObject, input.segment),
-              ),
-            ),
             onDone: [
               {
-                target: "Next",
+                target: "Adjacency",
                 actions: [
                   { type: "tdmAssign", params: ({ event }) => event.output },
                 ],
@@ -207,68 +275,116 @@ const dmMachine = setup({
             onError: { target: "#DM.Fail" },
           },
         },
-        Next: {},
+        Adjacency: {
+          initial: "Prompt",
+          on: {
+            RECOGNISED: {
+              target: "Next",
+              actions: assign({ lastResult: ({ event }) => event.value }),
+            },
+            ASR_NOINPUT: "Passivity",
+          },
+          states: {
+            Prompt: {
+              entry: ({ context }) =>
+                context.spstRef.send({
+                  type: "SPEAK",
+                  value: { utterance: context.tdmState.output.utterance },
+                }),
+              on: {
+                SPEAK_COMPLETE: [
+                  {
+                    target: "#DM.End",
+                    guard: ({ context }) =>
+                      context.tdmState.output.actions.some((item: any) =>
+                        [
+                          "EndOfSection",
+                          "EndSession",
+                          "EndConversation",
+                        ].includes(item.name),
+                      ),
+                  },
+                  {
+                    /** if passivity is 0 don't listen */
+                    target: "#DM.Active.Passivity",
+                    guard: ({ context }) =>
+                      context.tdmState.output.expected_passivity === 0,
+                  },
+                  { target: "Ask" },
+                ],
+              },
+            },
+            Ask: {
+              entry: ({ context }) =>
+                context.spstRef.send({
+                  type: "LISTEN",
+                  value: {
+                    /** 0 vs null (null = ∞)*/
+                    noInputTimeout:
+                      (context.tdmState.output.expected_passivity
+                        ? context.tdmState.output.expected_passivity * 1000
+                        : context.tdmState.output.expected_passivity) ??
+                      1000 * 3600 * 24,
+                  },
+                }),
+            },
+          },
+        },
+        Next: {
+          invoke: {
+            src: "nlInput",
+            input: ({ context }) => ({
+              endpoint: context.tdmSettings.endpoint,
+              sessionObject: context.tdmState.session,
+              activeDDD: context.tdmState.context.active_ddd,
+              moves: context.tdmState.output.moves,
+              lastResult: context.lastResult,
+            }),
+            onDone: [
+              {
+                target: "Adjacency",
+                actions: {
+                  type: "tdmAssign",
+                  params: ({ event }) => event.output,
+                },
+                guard: ({ event }) => !!event.output,
+              },
+              {
+                target: "#DM.Fail",
+              },
+            ],
+            onError: "#DM.Fail",
+          },
+        },
+        Passivity: {
+          invoke: {
+            src: "passivity",
+            input: ({ context }) => ({
+              endpoint: context.tdmSettings.endpoint,
+              sessionObject: context.tdmState.session,
+            }),
+            onDone: [
+              {
+                target: "Adjacency",
+                actions: {
+                  type: "tdmAssign",
+                  params: ({ event }) => event.output,
+                },
+                guard: ({ event }) => !!event.output,
+              },
+              { target: "#DM.Fail" },
+            ],
+            onError: "#DM.Fail",
+          },
+        },
       },
     },
     Stopped: { on: { START: "GetPages" } },
     Fail: {},
-
-    /////////////////////////////
-    Prepare: {
-      entry: [
-        ({ context }) =>
-          context.spstRef.send({
-            type: "PREPARE",
-          }),
-      ],
-      on: {
-        ASRTTS_READY: {
-          target: "start",
-          actions: () => console.debug("[SpSt→DM] ASRTTS_READY"),
-        },
-      },
-    },
-    start: {
-      entry: ({ context }) =>
-        context.spstRef.send({
-          type: "SPEAK",
-          value: { utterance: "hello world" },
-        }),
-      on: {
-        SPEAK_COMPLETE: {
-          actions: () => console.debug("[SpSt→DM] SPEAK_COMPLETE"),
-        },
-      },
-    },
-    ask: {
-      entry: ({ context }) =>
-        context.spstRef.send({
-          type: "LISTEN",
-        }),
-      on: {
-        RECOGNISED: {
-          target: "repeat",
-          actions: [({ event }) => console.log(event)],
-        },
-      },
-    },
-    repeat: {
-      entry: ({ context, event }) =>
-        context.spstRef.send({
-          type: "SPEAK",
-          value: { utterance: event.value[0].utterance },
-        }),
-      on: {
-        SPEAK_COMPLETE: {
-          target: "ask",
-          actions: () => console.debug("[SpSt→DM] ENDSPEECH"),
-        },
-      },
-    },
   },
 });
 
-const talaSpeechService = createActor(dmMachine);
+const talaSpeechService = createActor(dmMachine, { inspect });
 talaSpeechService.start();
 talaSpeechService.subscribe((state) => {
   console.log(state.value, state.context);

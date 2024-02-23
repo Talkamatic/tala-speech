@@ -1732,6 +1732,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@statelyai/inspect@npm:^0.2.3, @statelyai/inspect@npm:^0.2.4":
+  version: 0.2.4
+  resolution: "@statelyai/inspect@npm:0.2.4"
+  dependencies:
+    fast-safe-stringify: "npm:^2.1.1"
+    isomorphic-ws: "npm:^5.0.0"
+    partysocket: "npm:^0.0.25"
+    safe-stable-stringify: "npm:^2.4.3"
+    superjson: "npm:^1"
+    uuid: "npm:^9.0.1"
+  peerDependencies:
+    xstate: ^5.5.1
+  checksum: 8c57be5dbccd289aed7a340884b123f5915e973a4d290504d6779329e3934538597284df5a19b3f3960d2022842c909258cb7bb48324f91ccaee65045edf377c
+  languageName: node
+  linkType: hard
+
 "@types/estree@npm:1.0.5":
   version: 1.0.5
   resolution: "@types/estree@npm:1.0.5"
@@ -2089,6 +2105,15 @@ __metadata:
   version: 2.0.0
   resolution: "convert-source-map@npm:2.0.0"
   checksum: 8f2f7a27a1a011cc6cc88cc4da2d7d0cfa5ee0369508baae3d98c260bb3ac520691464e5bbe4ae7cdf09860c1d69ecc6f70c63c6e7c7f7e3f18ec08484dc7d9b
+  languageName: node
+  linkType: hard
+
+"copy-anything@npm:^3.0.2":
+  version: 3.0.5
+  resolution: "copy-anything@npm:3.0.5"
+  dependencies:
+    is-what: "npm:^4.1.8"
+  checksum: 01eadd500c7e1db71d32d95a3bfaaedcb839ef891c741f6305ab0461398056133de08f2d1bf4c392b364e7bdb7ce498513896e137a7a183ac2516b065c28a4fe
   languageName: node
   linkType: hard
 
@@ -2513,7 +2538,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"event-target-shim@npm:6.0.2":
+"event-target-shim@npm:6.0.2, event-target-shim@npm:^6.0.2":
   version: 6.0.2
   resolution: "event-target-shim@npm:6.0.2"
   checksum: e40b89effb1bd0fdd44dd198e3b61669c2bff89b680a8156c50480b5df8d4364208d1db09fbe823211005651558415691cb3ff72c22618eb154e55282b8b0481
@@ -2524,6 +2549,13 @@ __metadata:
   version: 3.1.1
   resolution: "exponential-backoff@npm:3.1.1"
   checksum: 160456d2d647e6019640bd07111634d8c353038d9fa40176afb7cd49b0548bdae83b56d05e907c2cce2300b81cae35d800ef92fefb9d0208e190fa3b7d6bb579
+  languageName: node
+  linkType: hard
+
+"fast-safe-stringify@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "fast-safe-stringify@npm:2.1.1"
+  checksum: d90ec1c963394919828872f21edaa3ad6f1dddd288d2bd4e977027afff09f5db40f94e39536d4646f7e01761d704d72d51dce5af1b93717f3489ef808f5f4e4d
   languageName: node
   linkType: hard
 
@@ -2851,6 +2883,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"is-what@npm:^4.1.8":
+  version: 4.1.16
+  resolution: "is-what@npm:4.1.16"
+  checksum: 611f1947776826dcf85b57cfb7bd3b3ea6f4b94a9c2f551d4a53f653cf0cb9d1e6518846648256d46ee6c91d114b6d09d2ac8a07306f7430c5900f87466aae5b
+  languageName: node
+  linkType: hard
+
 "isexe@npm:^2.0.0":
   version: 2.0.0
   resolution: "isexe@npm:2.0.0"
@@ -2862,6 +2901,15 @@ __metadata:
   version: 3.1.1
   resolution: "isexe@npm:3.1.1"
   checksum: 9ec257654093443eb0a528a9c8cbba9c0ca7616ccb40abd6dde7202734d96bb86e4ac0d764f0f8cd965856aacbff2f4ce23e730dc19dfb41e3b0d865ca6fdcc7
+  languageName: node
+  linkType: hard
+
+"isomorphic-ws@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "isomorphic-ws@npm:5.0.0"
+  peerDependencies:
+    ws: "*"
+  checksum: a058ac8b5e6efe9e46252cb0bc67fd325005d7216451d1a51238bc62d7da8486f828ef017df54ddf742e0fffcbe4b1bcc2a66cc115b027ed0180334cd18df252
   languageName: node
   linkType: hard
 
@@ -3288,6 +3336,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"partysocket@npm:^0.0.25":
+  version: 0.0.25
+  resolution: "partysocket@npm:0.0.25"
+  dependencies:
+    event-target-shim: "npm:^6.0.2"
+  checksum: ecc7c8314c649878383b686773309b23fb905f35f27d25139db09633b7f14733865ff378fa78838c25dc42141732b81bb35a2f12ba4c2e9e4106f86afd54b21e
+  languageName: node
+  linkType: hard
+
 "path-exists@npm:^5.0.0":
   version: 5.0.0
   resolution: "path-exists@npm:5.0.0"
@@ -3558,6 +3615,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"safe-stable-stringify@npm:^2.4.3":
+  version: 2.4.3
+  resolution: "safe-stable-stringify@npm:2.4.3"
+  checksum: 81dede06b8f2ae794efd868b1e281e3c9000e57b39801c6c162267eb9efda17bd7a9eafa7379e1f1cacd528d4ced7c80d7460ad26f62ada7c9e01dec61b2e768
+  languageName: node
+  linkType: hard
+
 "safer-buffer@npm:>= 2.1.2 < 3.0.0":
   version: 2.1.2
   resolution: "safer-buffer@npm:2.1.2"
@@ -3700,14 +3764,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"speechstate@npm:^2.0.0-beta.5":
-  version: 2.0.0-beta.5
-  resolution: "speechstate@npm:2.0.0-beta.5"
+"speechstate@npm:^2.0.0-beta.9":
+  version: 2.0.0-beta.9
+  resolution: "speechstate@npm:2.0.0-beta.9"
   dependencies:
+    "@statelyai/inspect": "npm:^0.2.3"
     microsoft-cognitiveservices-speech-sdk: "npm:^1.31.0"
     web-speech-cognitive-services: "npm:^7.1.3"
     xstate: "npm:^5.5.1"
-  checksum: ca4d894d10073edd07808441b46ec959927b0fec61feacc06eaea923b3748e0d1d6b413f9a9c4ce06b0cc3fbfd5fd5277e5b8c0d24e8f511edd395878bf83bb9
+  checksum: 46a66e119ce28aaf091f50153dc0bd17ef1007eefcef0fed7ae902e9ae17983a99d1c4fe0745202df50bf9d46236f03c416e75854812028b4f3d7d2e047f2bc0
   languageName: node
   linkType: hard
 
@@ -3760,6 +3825,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"superjson@npm:^1":
+  version: 1.13.3
+  resolution: "superjson@npm:1.13.3"
+  dependencies:
+    copy-anything: "npm:^3.0.2"
+  checksum: 389a0a0c86884dd0558361af5d6d7f37102b71dda9595a665fe8b39d1ba0e57c859e39a9bd79b6f1fde6f4dcceac49a1c205f248d292744b2a340ee52846efdb
+  languageName: node
+  linkType: hard
+
 "supports-color@npm:^5.3.0":
   version: 5.5.0
   resolution: "supports-color@npm:5.5.0"
@@ -3780,11 +3854,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "tala-speech@workspace:."
   dependencies:
-    speechstate: "npm:^2.0.0-beta.5"
+    "@statelyai/inspect": "npm:^0.2.4"
+    speechstate: "npm:^2.0.0-beta.9"
     typescript: "npm:^5.3.3"
     typescript-language-server: "npm:^4.3.1"
     vite: "npm:^5.0.11"
-    xstate: "npm:^5.5.1"
+    xstate: "npm:^5.8.0"
   languageName: unknown
   linkType: soft
 
@@ -3917,7 +3992,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:^9.0.0":
+"uuid@npm:^9.0.0, uuid@npm:^9.0.1":
   version: 9.0.1
   resolution: "uuid@npm:9.0.1"
   bin:
@@ -4096,6 +4171,13 @@ __metadata:
   version: 5.5.1
   resolution: "xstate@npm:5.5.1"
   checksum: 85066fc82c7ec6910bda5c337f398106036b2f16876b16c4203c45217aeccea6a7e96b11c9c6c5e1976a5df75b367daa5e13234dbb56251a32e88c0b7ebc3062
+  languageName: node
+  linkType: hard
+
+"xstate@npm:^5.8.0":
+  version: 5.8.0
+  resolution: "xstate@npm:5.8.0"
+  checksum: b800f0ba7787b64a4a6d280445d0ef6553c10e5f1a63874dd91d5a12dad6d6384eb57b8237055903655b81c7159e3afbb864257983137c47b3e31f539303815b
   languageName: node
   linkType: hard
 
