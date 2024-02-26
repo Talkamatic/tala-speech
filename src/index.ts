@@ -4,10 +4,9 @@ import {
   Agenda,
   Hypothesis,
   RecogniseParameters,
+  Settings,
 } from "speechstate";
-import { AZURE_PROXY, ENDPOINT } from "./credentials";
 import { createSkyInspector } from "@statelyai/inspect";
-import { isSemicolonClassElement } from "typescript";
 
 const { inspect } = createSkyInspector();
 
@@ -17,16 +16,14 @@ declare global {
   }
 }
 
-interface TDMSettings {
+interface TDMSettings extends Settings {
   deviceID: string;
-  sessionObjectAdditions: any;
+  sessionObjectAdditions?: any;
   endpoint: string;
-  azureKey?: string;
-  azureProxyURL?: string;
 }
 
 interface DMContext {
-  tdmSettings: TDMSettings;
+  tdmSettings?: TDMSettings;
   spstRef?: any;
   segment?: string;
   tdmState?: any;
@@ -35,6 +32,7 @@ interface DMContext {
 
 type DMEvent =
   | SSDMEvent
+  | { type: "SETUP"; value: TDMSettings }
   | { type: "TURN_PAGE"; value: string }
   | { type: "START" };
 
@@ -138,7 +136,7 @@ const dmMachine = setup({
     >(({ input }) =>
       tdmRequest(
         input.endpoint,
-        startSessionBody(input.deviceID, input.sessionObjectAdditions),
+        startSessionBody(input.deviceID, input.sessionObjectAdditions || {}),
       ),
     ),
     sendSegment: fromPromise<
@@ -177,36 +175,42 @@ const dmMachine = setup({
   },
 }).createMachine({
   id: "DM",
-  initial: "GetPages",
-  context: {
-    tdmSettings: {
-      deviceID: "tala-speech",
-      endpoint: ENDPOINT,
-      sessionObjectAdditions: {},
-    },
-  },
+  initial: "BeforeSetup",
   on: {
     TURN_PAGE: {
-      actions: [assign({ segment: ({ event }) => event.value })],
+      actions: assign({ segment: ({ event }) => event.value }),
     },
     STOP: ".Stopped",
   },
-  entry: assign({
-    spstRef: ({ spawn }) =>
-      spawn(speechstate, {
-        // TODO: turn this into event-based (CREATE?)
-        id: "speechstate",
-        input: {
-          azureCredentials: AZURE_PROXY,
-          asrDefaultCompleteTimeout: 0,
-          locale: "en-US",
-          asrDefaultNoInputTimeout: 5000,
-          ttsDefaultVoice: "en-US-DavisNeural",
-        },
-      }),
-  }),
   states: {
+    BeforeSetup: {
+      on: {
+        SETUP: {
+          target: "GetPages",
+          actions: assign({ tdmSettings: ({ event }) => event.value }),
+        },
+      },
+    },
     GetPages: {
+      entry: assign({
+        spstRef: ({ spawn, context }) =>
+          spawn(speechstate, {
+            // TODO: turn this into event-based (CREATE?)
+            id: "speechstate",
+            input: {
+              azureCredentials: context.tdmSettings.azureCredentials,
+              asrDefaultCompleteTimeout:
+                context.tdmSettings.asrDefaultCompleteTimeout || 0,
+              locale: context.tdmSettings.locale || "en-US",
+              asrDefaultNoInputTimeout:
+                context.tdmSettings.asrDefaultNoInputTimeout || 5000,
+              ttsDefaultVoice:
+                context.tdmSettings.ttsDefaultVoice || "en-US-DavisNeural",
+              speechRecognitionEndpointId:
+                context.tdmSettings.speechRecognitionEndpointId,
+            },
+          }),
+      }),
       invoke: {
         src: "startSession",
         input: ({ context }) => ({
@@ -216,7 +220,7 @@ const dmMachine = setup({
         }),
         onDone: [
           {
-            target: "Prepare",
+            target: "BeforePrepare",
             actions: [
               { type: "tdmAssign", params: ({ event }) => event.output },
               assign({
@@ -232,6 +236,9 @@ const dmMachine = setup({
         ],
         onError: { target: "Fail" },
       },
+    },
+    BeforePrepare: {
+      on: { PREPARE: "Prepare" },
     },
     Prepare: {
       entry: [
@@ -251,6 +258,15 @@ const dmMachine = setup({
     End: { on: { START: "Active" } },
     Active: {
       initial: "Start",
+      on: {
+        STOP: {
+          target: "#DM.Stopped",
+          actions: ({ context }) =>
+            context.spstRef.send({
+              type: "STOP",
+            }),
+        },
+      },
       states: {
         Start: {
           invoke: {
@@ -387,6 +403,6 @@ const dmMachine = setup({
 const talaSpeechService = createActor(dmMachine, { inspect });
 talaSpeechService.start();
 talaSpeechService.subscribe((state) => {
-  console.log(state.value, state.context);
+  // console.log(state.value, state.context);
 });
 window.TalaSpeech = talaSpeechService;

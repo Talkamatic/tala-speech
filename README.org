@@ -2,9 +2,34 @@
 TalaSpeech [[https://stately.ai/docs/actors][actor]] can be accessed through ~window.TalaSpeech~.
 
 Events to control TalaSpeech:
-- ~window.TalaSpeech.send({type: "SETTINGS", value: TBD})~ :: configure TalaSpeech 
-- ~window.TalaSpeech.send({type: "TURNPAGE", value: "onboarding"})~ :: "turn
+- ={ type: "SETUP"; value: TDMSettings }= :: configure TalaSpeech. 
+  #+begin_src javascript
+    window.TalaSpeech.send({
+      type: "SETUP",
+      value: {
+        deviceID: "tala-speech-2", /** required */
+        endpoint: "<endpoint_URL>", /** required */
+        azureCredentials: "<azure proxy or {key: "..",  endpoint: ",,"}>", /** required */
+
+        locale: "en-US", /** default */
+        sessionObjectAdditions: {}, /** default */
+        asrDefaultCompleteTimeout: 0, /** default */
+        asrDefaultNoInputTimeout: 5000, /** default */
+        ttsDefaultVoice: "en-US-DavisNeural", /** default */
+        azureLanguageCredentials: undefined, /** default, not supported by TDM*/
+        speechRecognitionEndpointId: undefined /** default */
+        },
+    })
+  #+end_src
+  
+- ~window.TalaSpeech.send({type: "TURNPAGE", value: "1"})~ :: "turn
   page" to get to a new dialogue
 - ~window.TalaSpeech.send({type: "PREPARE"})~ :: prepare ASR and TTS resources
-- ...
+- ~window.TalaSpeech.send({type: "START"})~ :: start the dialogue
 
+
+Observing state:
+- Tala-speech: =window.TalaSpeech.getSnapshot().value=
+- TDM: =window.TalaSpeech.getSnapshot().context.tdmState=
+- SpeechState (ASR and TTS status):
+  =window.TalaSpeech.getSnapshot().context.spstRef.getSnapshot().value=
