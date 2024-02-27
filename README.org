@@ -7,9 +7,9 @@ Events to control TalaSpeech:
     window.TalaSpeech.send({
       type: "SETUP",
       value: {
-        deviceID: "tala-speech-2", /** required */
-        endpoint: "<endpoint_URL>", /** required */
-        azureCredentials: "<azure proxy or {key: "..",  endpoint: ",,"}>", /** required */
+        deviceID: "", /** required */
+        endpoint: "", /** required, <endpoint_URL> */
+        azureCredentials: "", /** required, <azure proxy URL or {key: "...",  endpoint: "..."}>*/
 
         locale: "en-US", /** default */
         sessionObjectAdditions: {}, /** default */
@@ -33,3 +33,24 @@ Observing state:
 - TDM: =window.TalaSpeech.getSnapshot().context.tdmState=
 - SpeechState (ASR and TTS status):
   =window.TalaSpeech.getSnapshot().context.spstRef.getSnapshot().value=
+* Statecharts
+([[http://www.wisdom.weizmann.ac.il/~dharel/SCANNED.PAPERS/Statecharts.pdf ][Harel statecharts]])
+** Tala-speech
+#+begin_src plantuml :results output replace :file docs/diagrams/tala-speech.svg :exports results
+  skinparam defaultFontName Helvetica
+  [*] --> DM
+  DM --> DM: TURNPAGE
+  state DM {
+    BeforeSetup --> GetPages: SETUP
+    GetPages --> BeforePrepare
+    BeforePrepare --> Prepare: PREPARE
+    Prepare --> Idle: ASRTTS_READY
+    Idle --> Active: START
+    Active --> Stopped: STOP
+    Active --> End
+    state Fail
+  }
+#+end_src
+
+#+RESULTS:
+[[file:docs/diagrams/tala-speech.svg]]
