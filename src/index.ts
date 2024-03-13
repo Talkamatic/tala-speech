@@ -122,7 +122,6 @@ const dmMachine = setup({
     context: {} as DMContext,
     events: {} as DMEvent,
   },
-
   actions: {
     tdmAssign: assign((_, params: any) => {
       console.debug("[tdmState]", params);
@@ -172,7 +171,7 @@ const dmMachine = setup({
       ({ input }) =>
         tdmRequest(input.endpoint, passivityBody(input.sessionObject)),
     ),
-  },
+  } as any,
 }).createMachine({
   id: "DM",
   initial: "BeforeSetup",
