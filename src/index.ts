@@ -1,4 +1,11 @@
-import { assign, createActor, setup, fromPromise, AnyActor } from "xstate";
+import {
+  assign,
+  raise,
+  createActor,
+  setup,
+  fromPromise,
+  AnyActor,
+} from "xstate";
 import {
   speechstate,
   Agenda,
@@ -6,6 +13,7 @@ import {
   RecogniseParameters,
   Settings,
 } from "speechstate";
+
 import { createSkyInspector } from "@statelyai/inspect";
 
 const { inspect } = createSkyInspector();
@@ -299,6 +307,8 @@ const dmMachine = setup({
                       {
                         /** if passivity is 0 don't listen */
                         target: "Prompt",
+                        actions: raise({ type: "ASR_NOINPUT" }),
+                        reenter: true,
                         guard: ({ context }) =>
                           context.tdmState.output.expected_passivity === 0,
                       },
@@ -328,19 +338,6 @@ const dmMachine = setup({
             },
             TDMCalls: {
               initial: "Start",
-              on: {
-                RECOGNISED: {
-                  target: ".NLInput",
-                  reenter: true,
-                  actions: assign({
-                    lastResult: ({ event }) => event.value,
-                  }),
-                },
-                ASR_NOINPUT: {
-                  target: ".Passivity",
-                  reenter: true,
-                },
-              },
               states: {
                 Start: {
                   invoke: {
@@ -368,7 +365,21 @@ const dmMachine = setup({
                     onError: { target: "#DM.Fail" },
                   },
                 },
-                Idle: {},
+                Idle: {
+                  on: {
+                    RECOGNISED: {
+                      target: "NLInput",
+                      actions: [
+                        assign({
+                          lastResult: ({ event }) => event.value,
+                        }),
+                      ],
+                    },
+                    ASR_NOINPUT: {
+                      target: "Passivity",
+                    },
+                  },
+                },
                 NLInput: {
                   invoke: {
                     src: "nlInput",
