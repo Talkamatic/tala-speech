@@ -574,8 +574,7 @@ function App({ domElement }: any) {
         createEventsFromChunks: (context: SDSContext) => {
           if (!context.stream) {
             context.stream = new EventSource(
-              "https://tar.dc1.pratb.art:1880/sse/" +
-                context.sessionObject.session_id,
+              "https://tala-sse.azurewebsites.net/sse/${context.sessionObject.session_id}"
             );
             context.stream.onmessage = function (event: any) {
               if (event.data !== "[CLEAR]") {
