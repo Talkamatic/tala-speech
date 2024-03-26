@@ -1,0 +1,76 @@
+#+TITLE: TalaSpeech 2.0 interface description
+TalaSpeech [[https://stately.ai/docs/actors][actor]] can be accessed through ~window.TalaSpeech~.
+
+Events to control TalaSpeech:
+- ={ type: "SETUP"; value: TDMSettings }= :: configure TalaSpeech.
+  #+begin_src javascript
+    window.TalaSpeech.send({
+      type: "SETUP",
+      value: {
+        deviceID: "", /** required */
+        endpoint: "", /** required, <endpoint_URL> */
+        azureCredentials: "", /** required, <azure proxy URL or {key: "...",  endpoint: "..."}>*/
+
+        locale: "en-US", /** default */
+        sessionObjectAdditions: {}, /** default */
+        asrDefaultCompleteTimeout: 0, /** default */
+        asrDefaultNoInputTimeout: 5000, /** default */
+        ttsDefaultVoice: "en-US-DavisNeural", /** default */
+        azureLanguageCredentials: undefined, /** default, not supported by TDM*/
+        speechRecognitionEndpointId: undefined /** default */
+        },
+    })
+  #+end_src
+
+- ~window.TalaSpeech.send({type: "TURNPAGE", value: "1"})~ :: "turn
+  page" to get to a new dialogue
+- ~window.TalaSpeech.send({type: "PREPARE"})~ :: prepare ASR and TTS resources
+- ~window.TalaSpeech.send({type: "START"})~ :: start the dialogue
+
+
+Observing state:
+- Tala-speech: =window.TalaSpeech.getSnapshot().value=
+- TDM: =window.TalaSpeech.getSnapshot().context.tdmState=
+- SpeechState (ASR and TTS status):
+  =window.TalaSpeech.getSnapshot().context.spstRef.getSnapshot().value=
+* Statecharts
+([[http://www.wisdom.weizmann.ac.il/~dharel/SCANNED.PAPERS/Statecharts.pdf ][Harel statecharts]])
+** Tala-speech
+#+begin_src plantuml :results output replace :file docs/diagrams/tala-speech.svg :exports results
+  skinparam defaultFontName Helvetica
+  [*] --> DM
+  DM --> DM: TURNPAGE
+  state DM {
+    BeforeSetup --> GetPages: SETUP
+    GetPages --> BeforePrepare
+    BeforePrepare --> Prepare: PREPARE
+    Prepare --> Idle: ASRTTS_READY
+    Idle --> Active: START
+    Active --> Stopped: STOP
+    Active --> End
+    state Fail
+  }
+#+end_src
+
+#+RESULTS:
+[[file:docs/diagrams/tala-speech.svg]]
+
+
+To run speechstate locally (for development), run:
+
+$ cd path/to/speechstate
+$ yarn exec tsc
+
+$ cd path/to/tala-speech
+$ yarn remove speechstate
+$ yarn add speechstate@file:relative/path/to/speechstate
+
+
+In order to get changes from speechstate reflected in tala-speech:
+
+in speechstate:
+$ yarn exec tsc
+
+in tala-speech
+$ yarn
+$ yarn dev

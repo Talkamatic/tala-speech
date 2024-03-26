@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Enable Corepack
+      run: corepack enable
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with:
@@ -23,7 +25,7 @@ jobs:
         cache: 'yarn'
     - name: Yarn install dependencies and build
       run: |
-        yarn --prefer-offline
+        yarn 
         yarn build
     - name: Upload artifact
       uses: actions/upload-artifact@v3
