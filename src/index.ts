@@ -288,7 +288,7 @@ const dmMachine = setup({
                       type: "SPEAK",
                       value: {
                         utterance: context.tdmState.output.utterance,
-                        stream: `https://tala-sse.azurewebsites.net/event-sse/${context.tdmState.session.session_id}`,
+                        stream: `https://tala-event-sse.azurewebsites.net/event-sse/${context.tdmState.session.session_id}`,
                       },
                     }),
                   on: {
