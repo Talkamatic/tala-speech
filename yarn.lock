@@ -1732,7 +1732,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@statelyai/inspect@npm:^0.2.3, @statelyai/inspect@npm:^0.2.4":
+"@statelyai/inspect@npm:^0.2.3":
   version: 0.2.4
   resolution: "@statelyai/inspect@npm:0.2.4"
   dependencies:
@@ -1745,6 +1745,22 @@ __metadata:
   peerDependencies:
     xstate: ^5.5.1
   checksum: 8c57be5dbccd289aed7a340884b123f5915e973a4d290504d6779329e3934538597284df5a19b3f3960d2022842c909258cb7bb48324f91ccaee65045edf377c
+  languageName: node
+  linkType: hard
+
+"@statelyai/inspect@npm:^0.2.5":
+  version: 0.2.5
+  resolution: "@statelyai/inspect@npm:0.2.5"
+  dependencies:
+    fast-safe-stringify: "npm:^2.1.1"
+    isomorphic-ws: "npm:^5.0.0"
+    partysocket: "npm:^0.0.25"
+    safe-stable-stringify: "npm:^2.4.3"
+    superjson: "npm:^1.13.3"
+    uuid: "npm:^9.0.1"
+  peerDependencies:
+    xstate: ^5.5.1
+  checksum: f0c4828628acb666399bb627d4336af4ed6c7d329dbafb9c6b332d28db9f5a7b5320fab3d7dad39f486ab01cb7cf7fff2958a0b8d715eb957eb53714baca6576
   languageName: node
   linkType: hard
 
@@ -3764,15 +3780,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"speechstate@npm:^2.0.0-beta.9":
-  version: 2.0.0-beta.9
-  resolution: "speechstate@npm:2.0.0-beta.9"
+"speechstate@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "speechstate@npm:2.0.0"
   dependencies:
     "@statelyai/inspect": "npm:^0.2.3"
     microsoft-cognitiveservices-speech-sdk: "npm:^1.31.0"
     web-speech-cognitive-services: "npm:^7.1.3"
     xstate: "npm:^5.5.1"
-  checksum: 46a66e119ce28aaf091f50153dc0bd17ef1007eefcef0fed7ae902e9ae17983a99d1c4fe0745202df50bf9d46236f03c416e75854812028b4f3d7d2e047f2bc0
+  checksum: be1321994905d1dc7f95d1334ac730564eb9b383919d884cb1d4d149560992bcaad387a07da83d19a300acb6d7dbb3ca42f36750210d58d6e1efb5613b5e8106
   languageName: node
   linkType: hard
 
@@ -3825,7 +3841,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"superjson@npm:^1":
+"superjson@npm:^1, superjson@npm:^1.13.3":
   version: 1.13.3
   resolution: "superjson@npm:1.13.3"
   dependencies:
@@ -3854,12 +3870,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "tala-speech@workspace:."
   dependencies:
-    "@statelyai/inspect": "npm:^0.2.4"
-    speechstate: "npm:^2.0.0-beta.9"
+    "@statelyai/inspect": "npm:^0.2.5"
+    speechstate: "npm:^2.0.0"
     typescript: "npm:^5.3.3"
     typescript-language-server: "npm:^4.3.1"
     vite: "npm:^5.0.11"
-    xstate: "npm:^5.8.0"
+    xstate: "npm:^5.9.1"
   languageName: unknown
   linkType: soft
 
@@ -4174,10 +4190,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"xstate@npm:^5.8.0":
-  version: 5.8.0
-  resolution: "xstate@npm:5.8.0"
-  checksum: b800f0ba7787b64a4a6d280445d0ef6553c10e5f1a63874dd91d5a12dad6d6384eb57b8237055903655b81c7159e3afbb864257983137c47b3e31f539303815b
+"xstate@npm:^5.9.1":
+  version: 5.9.1
+  resolution: "xstate@npm:5.9.1"
+  checksum: 97b7e4051072917f29f32ea60823d66095ada320a86b6b1493e632bb8ea79ba6f93e2d0b310d282ad0dd152252894aa6043d81f351d7952263a73d6efd6d1e2e
   languageName: node
   linkType: hard
 

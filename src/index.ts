@@ -1,4 +1,11 @@
-import { assign, createActor, setup, fromPromise, AnyActor } from "xstate";
+import {
+  assign,
+  raise,
+  createActor,
+  setup,
+  fromPromise,
+  AnyActor,
+} from "xstate";
 import {
   speechstate,
   Agenda,
@@ -6,6 +13,7 @@ import {
   RecogniseParameters,
   Settings,
 } from "speechstate";
+
 import { createSkyInspector } from "@statelyai/inspect";
 
 const { inspect } = createSkyInspector();
@@ -62,7 +70,7 @@ async function tdmRequest(endpoint: string, requestBody: any) {
         version: "3.4",
         ...requestBody,
       }),
-    }),
+    })
   ).then((data) => data.json());
 }
 
@@ -96,7 +104,7 @@ const nlInputBody = (
   sessionObject: any,
   ddd: string,
   moves: string[],
-  hypotheses: Hypothesis[],
+  hypotheses: Hypothesis[]
 ) => ({
   session: {
     ...sessionObject,
@@ -135,8 +143,8 @@ const dmMachine = setup({
     >(({ input }) =>
       tdmRequest(
         input.endpoint,
-        startSessionBody(input.deviceID, input.sessionObjectAdditions || {}),
-      ),
+        startSessionBody(input.deviceID, input.sessionObjectAdditions || {})
+      )
     ),
     sendSegment: fromPromise<
       any,
@@ -144,8 +152,8 @@ const dmMachine = setup({
     >(({ input }) =>
       tdmRequest(
         input.endpoint,
-        sendSegmentBody(input.sessionObject, input.segment),
-      ),
+        sendSegmentBody(input.sessionObject, input.segment)
+      )
     ),
     nlInput: fromPromise<
       any,
@@ -163,13 +171,13 @@ const dmMachine = setup({
           input.sessionObject,
           input.activeDDD,
           input.moves,
-          input.lastResult,
-        ),
-      ),
+          input.lastResult
+        )
+      )
     ),
     passivity: fromPromise<any, { endpoint: string; sessionObject: any }>(
       ({ input }) =>
-        tdmRequest(input.endpoint, passivityBody(input.sessionObject)),
+        tdmRequest(input.endpoint, passivityBody(input.sessionObject))
     ),
   } as any,
 }).createMachine({
@@ -256,7 +264,7 @@ const dmMachine = setup({
     Idle: { on: { START: "Active" } },
     End: { on: { START: "Active" } },
     Active: {
-      initial: "Start",
+      initial: "Conversation",
       on: {
         STOP: {
           target: "#DM.Stopped",
@@ -267,134 +275,164 @@ const dmMachine = setup({
         },
       },
       states: {
-        Start: {
-          invoke: {
-            src: "sendSegment",
-            input: ({ context }) => ({
-              endpoint: context.tdmSettings.endpoint,
-              sessionObject: context.tdmState.session,
-              segment: context.segment,
-            }),
-            onDone: [
-              {
-                target: "Adjacency",
-                actions: [
-                  { type: "tdmAssign", params: ({ event }) => event.output },
-                ],
-                guard: ({ event }) => !!event.output,
-              },
-              {
-                target: "#DM.Fail",
-              },
-            ],
-            onError: { target: "#DM.Fail" },
-          },
-        },
-        Adjacency: {
-          initial: "Prompt",
-          on: {
-            RECOGNISED: {
-              target: "Next",
-              actions: assign({ lastResult: ({ event }) => event.value }),
-            },
-            ASR_NOINPUT: "Passivity",
-          },
+        Conversation: {
+          type: "parallel",
           states: {
-            Prompt: {
-              entry: ({ context }) =>
-                context.spstRef.send({
-                  type: "SPEAK",
-                  value: { utterance: context.tdmState.output.utterance },
-                }),
-              on: {
-                SPEAK_COMPLETE: [
-                  {
-                    target: "#DM.End",
-                    guard: ({ context }) =>
-                      context.tdmState.output.actions.some((item: any) =>
-                        [
-                          "EndOfSection",
-                          "EndSession",
-                          "EndConversation",
-                        ].includes(item.name),
-                      ),
+            Adjacency: {
+              initial: "Prompt",
+              states: {
+                Prompt: {
+                  entry: ({ context }) =>
+                    context.spstRef.send({
+                      type: "SPEAK",
+                      value: {
+                        utterance: context.tdmState.output.utterance,
+                        stream: `https://tala-event-sse.azurewebsites.net/event-sse/${context.tdmState.session.session_id}`,
+                      },
+                    }),
+                  on: {
+                    SPEAK_COMPLETE: [
+                      {
+                        target: "#DM.End",
+                        guard: ({ context }) =>
+                          context.tdmState.output.actions.some((item: any) =>
+                            [
+                              "EndOfSection",
+                              "EndSession",
+                              "EndConversation",
+                            ].includes(item.name)
+                          ),
+                      },
+                      {
+                        /** if passivity is 0 don't listen */
+                        target: "Prompt",
+                        actions: raise({ type: "ASR_NOINPUT" }),
+                        reenter: true,
+                        guard: ({ context }) =>
+                          context.tdmState.output.expected_passivity === 0,
+                      },
+                      { target: "Ask" },
+                    ],
                   },
-                  {
-                    /** if passivity is 0 don't listen */
-                    target: "#DM.Active.Passivity",
-                    guard: ({ context }) =>
-                      context.tdmState.output.expected_passivity === 0,
+                },
+                Ask: {
+                  entry: ({ context }) =>
+                    context.spstRef.send({
+                      type: "LISTEN",
+                      value: {
+                        /** 0 vs null (null = ∞)*/
+                        noInputTimeout:
+                          (context.tdmState.output.expected_passivity
+                            ? context.tdmState.output.expected_passivity * 1000
+                            : context.tdmState.output.expected_passivity) ??
+                          1000 * 3600 * 24,
+                      },
+                    }),
+                  on: {
+                    RECOGNISED: "Prompt",
+                    ASR_NOINPUT: "Prompt",
                   },
-                  { target: "Ask" },
-                ],
+                },
               },
             },
-            Ask: {
-              entry: ({ context }) =>
-                context.spstRef.send({
-                  type: "LISTEN",
-                  value: {
-                    /** 0 vs null (null = ∞)*/
-                    noInputTimeout:
-                      (context.tdmState.output.expected_passivity
-                        ? context.tdmState.output.expected_passivity * 1000
-                        : context.tdmState.output.expected_passivity) ??
-                      1000 * 3600 * 24,
+            TDMCalls: {
+              initial: "Start",
+              states: {
+                Start: {
+                  invoke: {
+                    src: "sendSegment",
+                    input: ({ context }) => ({
+                      endpoint: context.tdmSettings.endpoint,
+                      sessionObject: context.tdmState.session,
+                      segment: context.segment,
+                    }),
+                    onDone: [
+                      {
+                        target: "Idle",
+                        actions: [
+                          {
+                            type: "tdmAssign",
+                            params: ({ event }) => event.output,
+                          },
+                        ],
+                        guard: ({ event }) => !!event.output,
+                      },
+                      {
+                        target: "#DM.Fail",
+                      },
+                    ],
+                    onError: { target: "#DM.Fail" },
                   },
-                }),
+                },
+                Idle: {
+                  on: {
+                    RECOGNISED: {
+                      target: "NLInput",
+                      actions: [
+                        assign({
+                          lastResult: ({ event }) => event.value,
+                        }),
+                      ],
+                    },
+                    ASR_NOINPUT: {
+                      target: "Passivity",
+                    },
+                  },
+                },
+                NLInput: {
+                  invoke: {
+                    src: "nlInput",
+                    input: ({ context }) => ({
+                      endpoint: context.tdmSettings.endpoint,
+                      sessionObject: context.tdmState.session,
+                      activeDDD: context.tdmState.context.active_ddd,
+                      moves: context.tdmState.output.moves,
+                      lastResult: context.lastResult,
+                    }),
+                    onDone: [
+                      {
+                        target: "Idle",
+                        actions: {
+                          type: "tdmAssign",
+                          params: ({ event }) => event.output,
+                        },
+                        guard: ({ event }) => !!event.output,
+                      },
+                      {
+                        target: "#DM.Fail",
+                      },
+                    ],
+                    onError: "#DM.Fail",
+                  },
+                },
+                Passivity: {
+                  invoke: {
+                    src: "passivity",
+                    input: ({ context }) => ({
+                      endpoint: context.tdmSettings.endpoint,
+                      sessionObject: context.tdmState.session,
+                    }),
+                    onDone: [
+                      {
+                        target: "Idle",
+                        actions: {
+                          type: "tdmAssign",
+                          params: ({ event }) => event.output,
+                        },
+                        guard: ({ event }) => !!event.output,
+                      },
+                      { target: "#DM.Fail" },
+                    ],
+                    onError: "#DM.Fail",
+                  },
+                },
+              },
             },
-          },
-        },
-        Next: {
-          invoke: {
-            src: "nlInput",
-            input: ({ context }) => ({
-              endpoint: context.tdmSettings.endpoint,
-              sessionObject: context.tdmState.session,
-              activeDDD: context.tdmState.context.active_ddd,
-              moves: context.tdmState.output.moves,
-              lastResult: context.lastResult,
-            }),
-            onDone: [
-              {
-                target: "Adjacency",
-                actions: {
-                  type: "tdmAssign",
-                  params: ({ event }) => event.output,
-                },
-                guard: ({ event }) => !!event.output,
-              },
-              {
-                target: "#DM.Fail",
-              },
-            ],
-            onError: "#DM.Fail",
-          },
-        },
-        Passivity: {
-          invoke: {
-            src: "passivity",
-            input: ({ context }) => ({
-              endpoint: context.tdmSettings.endpoint,
-              sessionObject: context.tdmState.session,
-            }),
-            onDone: [
-              {
-                target: "Adjacency",
-                actions: {
-                  type: "tdmAssign",
-                  params: ({ event }) => event.output,
-                },
-                guard: ({ event }) => !!event.output,
-              },
-              { target: "#DM.Fail" },
-            ],
-            onError: "#DM.Fail",
           },
         },
       },
     },
-    Stopped: { on: { START: "GetPages" } },
+    Stopped: { on: { START: "Active" } },
     Fail: {},
   },
 });

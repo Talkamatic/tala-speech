@@ -11,13 +11,13 @@
   "author": "Talkamatic AB",
   "packageManager": "yarn@4.0.2",
   "dependencies": {
-    "speechstate": "^2.0.0-beta.9",
+    "speechstate": "^2.0.1",
     "typescript": "^5.3.3",
     "typescript-language-server": "^4.3.1",
     "vite": "^5.0.11",
-    "xstate": "^5.8.0"
+    "xstate": "^5.9.1"
   },
   "devDependencies": {
-    "@statelyai/inspect": "^0.2.4"
+    "@statelyai/inspect": "^0.2.5"
   }
 }

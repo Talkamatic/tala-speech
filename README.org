@@ -2,7 +2,7 @@
 TalaSpeech [[https://stately.ai/docs/actors][actor]] can be accessed through ~window.TalaSpeech~.
 
 Events to control TalaSpeech:
-- ={ type: "SETUP"; value: TDMSettings }= :: configure TalaSpeech. 
+- ={ type: "SETUP"; value: TDMSettings }= :: configure TalaSpeech.
   #+begin_src javascript
     window.TalaSpeech.send({
       type: "SETUP",
@@ -21,7 +21,7 @@ Events to control TalaSpeech:
         },
     })
   #+end_src
-  
+
 - ~window.TalaSpeech.send({type: "TURNPAGE", value: "1"})~ :: "turn
   page" to get to a new dialogue
 - ~window.TalaSpeech.send({type: "PREPARE"})~ :: prepare ASR and TTS resources
@@ -54,3 +54,23 @@ Observing state:
 
 #+RESULTS:
 [[file:docs/diagrams/tala-speech.svg]]
+
+
+To run speechstate locally (for development), run:
+
+$ cd path/to/speechstate
+$ yarn exec tsc
+
+$ cd path/to/tala-speech
+$ yarn remove speechstate
+$ yarn add speechstate@file:relative/path/to/speechstate
+
+
+In order to get changes from speechstate reflected in tala-speech:
+
+in speechstate:
+$ yarn exec tsc
+
+in tala-speech
+$ yarn
+$ yarn dev
