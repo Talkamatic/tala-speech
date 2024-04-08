@@ -179,7 +179,7 @@ const dmMachine = setup({
       ({ input }) =>
         tdmRequest(input.endpoint, passivityBody(input.sessionObject))
     ),
-  } as any,
+  },
 }).createMachine({
   id: "DM",
   initial: "BeforeSetup",
@@ -201,8 +201,7 @@ const dmMachine = setup({
     GetPages: {
       entry: assign({
         spstRef: ({ spawn, context }) =>
-          spawn(speechstate, {
-            // TODO: turn this into event-based (CREATE?)
+          spawn(speechstate as any, {
             id: "speechstate",
             input: {
               azureCredentials: context.tdmSettings.azureCredentials,
@@ -216,7 +215,7 @@ const dmMachine = setup({
               speechRecognitionEndpointId:
                 context.tdmSettings.speechRecognitionEndpointId,
             },
-          }),
+          } as any),
       }),
       invoke: {
         src: "startSession",
