@@ -11,5 +11,5 @@
     "lib": ["dom", "es2016"],
     "moduleResolution": "node"
   },
-  "include": ["src/*"]
+  "include": ["src/index.ts"]
 }
