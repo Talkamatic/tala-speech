@@ -1,6 +1,6 @@
 {
   "name": "tala-speech",
-  "version": "2.1.0",
+  "version": "2.1.2",
   "license": "GPL-3.0",
   "scripts": {
     "dev": "vite"
