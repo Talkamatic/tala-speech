@@ -14,9 +14,9 @@ import {
   Settings,
 } from "speechstate";
 
-import { createSkyInspector } from "@statelyai/inspect";
+// import { createSkyInspector } from "@statelyai/inspect";
 
-const { inspect } = createSkyInspector();
+// const { inspect } = createSkyInspector();
 
 declare global {
   interface Window {
@@ -436,7 +436,9 @@ const dmMachine = setup({
   },
 });
 
-const talaSpeechService = createActor(dmMachine, { inspect });
+const talaSpeechService = createActor(dmMachine, {
+  /* inspect */
+});
 talaSpeechService.start();
 talaSpeechService.subscribe((state) => {
   // console.log(state.value, state.context);
