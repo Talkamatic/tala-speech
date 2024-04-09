@@ -3,15 +3,16 @@
   "version": "2.1.2",
   "license": "GPL-3.0",
   "scripts": {
-    "dev": "vite"
+    "dev": "vite",
+    "build": "parcel build src/index.ts --no-source-maps --dist-dir dist/"
   },
-  "author": "Talkamatic AB",
   "packageManager": "yarn@4.0.2",
   "dependencies": {
     "speechstate": "^2.0.3"
   },
   "devDependencies": {
     "@statelyai/inspect": "^0.2.5",
+    "parcel": "^2.3.2",
     "typescript": "^5.3.3",
     "typescript-language-server": "^4.3.1",
     "vite": "^5.2.8"
