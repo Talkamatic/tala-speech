@@ -2025,9 +2025,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001587":
-  version: 1.0.30001607
-  resolution: "caniuse-lite@npm:1.0.30001607"
-  checksum: 45fe5da6ae408cab5e2f01078cb43620ce64f4c0dcc07c81284717ccaf3adaee373ecac8febe8507e0f0ede32ebe105146a5253402d8339db745258f3ac332e3
+  version: 1.0.30001608
+  resolution: "caniuse-lite@npm:1.0.30001608"
+  checksum: 7ae62689ca358cd3bdb89b2db9b4841812299f8a0b3ab94b52e4548778bd5740814617c0e0b2504b6bfaf47acc2472e1730393bd2027d646acbe8dc8206ad9e7
   languageName: node
   linkType: hard
 
@@ -2191,9 +2191,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.730
-  resolution: "electron-to-chromium@npm:1.4.730"
-  checksum: c2eec8a367e86655076ba0b3bf59f2134ee347ebe3dbf8648a766c3773eb2fb7027c49f1342b82b0606b415cc72597e5c4576166eb348a0c30536e74c8f4df8c
+  version: 1.4.731
+  resolution: "electron-to-chromium@npm:1.4.731"
+  checksum: f5ec068ae0616e2c3b68d66ce253a673de65b22ab3bea7e70dc16db7b7c683ca65f7d5c3b7276dd1f837a9c513ef435a53475b69a5df5eb581736d69b713ba3e
   languageName: node
   linkType: hard
 
@@ -3757,12 +3757,12 @@ __metadata:
   linkType: hard
 
 "socks@npm:^2.7.1":
-  version: 2.8.1
-  resolution: "socks@npm:2.8.1"
+  version: 2.8.3
+  resolution: "socks@npm:2.8.3"
   dependencies:
     ip-address: ^9.0.5
     smart-buffer: ^4.2.0
-  checksum: 29586d42e9c36c5016632b2bcb6595e3adfbcb694b3a652c51bc8741b079c5ec37bdd5675a1a89a1620078c8137208294991fabb50786f92d47759a725b2b62e
+  checksum: 7a6b7f6eedf7482b9e4597d9a20e09505824208006ea8f2c49b71657427f3c137ca2ae662089baa73e1971c62322d535d9d0cf1c9235cf6f55e315c18203eadd
   languageName: node
   linkType: hard
 
@@ -4216,9 +4216,9 @@ __metadata:
   linkType: hard
 
 "xstate@npm:^5.9.1":
-  version: 5.9.1
-  resolution: "xstate@npm:5.9.1"
-  checksum: c9c421cd057b755abe52b324c11c3bb267fa01491a3be42db137e712701931a3f1e951acd5f620861cf9fc37db00d1385e4223c74e931ee94b217bcc32fcb3f0
+  version: 5.10.0
+  resolution: "xstate@npm:5.10.0"
+  checksum: e11512b9657724fddb48a29415ef2df15fc9435200b9c2086ab4fe50d61049ba723d6cfa9c889f28b0996844aedcc5086f864b68a3c53284999f8e15b7ad4fdb
   languageName: node
   linkType: hard
 
