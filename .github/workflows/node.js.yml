@@ -2,7 +2,7 @@ name: Node.js CI
 
 on:
   release:
-    types: [published]    
+    types: [published]
 jobs:
   build:
 
@@ -18,7 +18,8 @@ jobs:
           cache: 'yarn'
           scope: '@talkamatic'
       - run: yarn
-      - run: yarn exec tsc
+      - run: yarn exec tsc --outDir dist/lib
+      - run: yarn exec vite build --outDir dist/browser
       - name: Publish to NPM registry
         run: npm publish
         env:
