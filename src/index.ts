@@ -21,6 +21,7 @@ import {
 declare global {
   interface Window {
     TalaSpeech: AnyActor;
+    TalaSpeechUIState: any;
   }
 }
 
@@ -70,7 +71,7 @@ async function tdmRequest(endpoint: string, requestBody: any) {
         version: "3.4",
         ...requestBody,
       }),
-    })
+    }),
   ).then((data) => data.json());
 }
 
@@ -104,7 +105,7 @@ const nlInputBody = (
   sessionObject: any,
   ddd: string,
   moves: string[],
-  hypotheses: Hypothesis[]
+  hypotheses: Hypothesis[],
 ) => ({
   session: {
     ...sessionObject,
@@ -143,8 +144,8 @@ const dmMachine = setup({
     >(({ input }) =>
       tdmRequest(
         input.endpoint,
-        startSessionBody(input.deviceID, input.sessionObjectAdditions || {})
-      )
+        startSessionBody(input.deviceID, input.sessionObjectAdditions || {}),
+      ),
     ),
     sendSegment: fromPromise<
       any,
@@ -152,8 +153,8 @@ const dmMachine = setup({
     >(({ input }) =>
       tdmRequest(
         input.endpoint,
-        sendSegmentBody(input.sessionObject, input.segment)
-      )
+        sendSegmentBody(input.sessionObject, input.segment),
+      ),
     ),
     nlInput: fromPromise<
       any,
@@ -171,13 +172,13 @@ const dmMachine = setup({
           input.sessionObject,
           input.activeDDD,
           input.moves,
-          input.lastResult
-        )
-      )
+          input.lastResult,
+        ),
+      ),
     ),
     passivity: fromPromise<any, { endpoint: string; sessionObject: any }>(
       ({ input }) =>
-        tdmRequest(input.endpoint, passivityBody(input.sessionObject))
+        tdmRequest(input.endpoint, passivityBody(input.sessionObject)),
     ),
   },
 }).createMachine({
@@ -201,21 +202,24 @@ const dmMachine = setup({
     GetPages: {
       entry: assign({
         spstRef: ({ spawn, context }) =>
-          spawn(speechstate as any, {
-            id: "speechstate",
-            input: {
-              azureCredentials: context.tdmSettings.azureCredentials,
-              asrDefaultCompleteTimeout:
-                context.tdmSettings.asrDefaultCompleteTimeout || 0,
-              locale: context.tdmSettings.locale || "en-US",
-              asrDefaultNoInputTimeout:
-                context.tdmSettings.asrDefaultNoInputTimeout || 5000,
-              ttsDefaultVoice:
-                context.tdmSettings.ttsDefaultVoice || "en-US-DavisNeural",
-              speechRecognitionEndpointId:
-                context.tdmSettings.speechRecognitionEndpointId,
-            },
-          } as any),
+          spawn(
+            speechstate as any,
+            {
+              id: "speechstate",
+              input: {
+                azureCredentials: context.tdmSettings.azureCredentials,
+                asrDefaultCompleteTimeout:
+                  context.tdmSettings.asrDefaultCompleteTimeout || 0,
+                locale: context.tdmSettings.locale || "en-US",
+                asrDefaultNoInputTimeout:
+                  context.tdmSettings.asrDefaultNoInputTimeout || 5000,
+                ttsDefaultVoice:
+                  context.tdmSettings.ttsDefaultVoice || "en-US-DavisNeural",
+                speechRecognitionEndpointId:
+                  context.tdmSettings.speechRecognitionEndpointId,
+              },
+            } as any,
+          ),
       }),
       invoke: {
         src: "startSession",
@@ -299,7 +303,7 @@ const dmMachine = setup({
                               "EndOfSection",
                               "EndSession",
                               "EndConversation",
-                            ].includes(item.name)
+                            ].includes(item.name),
                           ),
                       },
                       {
@@ -440,7 +444,17 @@ const talaSpeechService = createActor(dmMachine, {
   /* inspect */
 });
 talaSpeechService.start();
+
+window.TalaSpeechUIState = talaSpeechService.getSnapshot().value;
 talaSpeechService.subscribe((state) => {
-  // console.log(state.value, state.context);
+  if (!state.value["Active"]) {
+    window.TalaSpeechUIState = state.value;
+  } else {
+    let meta = state.context.spstRef.getSnapshot().getMeta();
+    window.TalaSpeechUIState = (
+      (Object.values(meta)[0] as { view: string }) || { view: "Active" }
+    ).view;
+  }
+  console.debug("[TalaSpeechUIState]", window.TalaSpeechUIState);
 });
 window.TalaSpeech = talaSpeechService;
