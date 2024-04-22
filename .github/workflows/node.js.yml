@@ -20,6 +20,8 @@ jobs:
       - run: yarn
       - run: yarn exec tsc --outDir dist/lib
       - run: yarn exec vite build --outDir dist/browser
+      - name: Bump version to the tag
+        run: npm version from-git
       - name: Publish to NPM registry
         run: npm publish
         env:
