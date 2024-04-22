@@ -21,7 +21,7 @@ import {
 declare global {
   interface Window {
     TalaSpeech: AnyActor;
-    TalaSpeechUIState: any;
+    TalaSpeechUIState: string | undefined;
   }
 }
 
@@ -192,6 +192,7 @@ const dmMachine = setup({
   },
   states: {
     BeforeSetup: {
+      meta: { view: "initiating" },
       on: {
         SETUP: {
           target: "GetPages",
@@ -200,6 +201,7 @@ const dmMachine = setup({
       },
     },
     GetPages: {
+      meta: { view: "initiating" },
       entry: assign({
         spstRef: ({ spawn, context }) =>
           spawn(
@@ -248,9 +250,11 @@ const dmMachine = setup({
       },
     },
     BeforePrepare: {
+      meta: { view: "initiating" },
       on: { PREPARE: "Prepare" },
     },
     Prepare: {
+      meta: { view: "initiating" },
       entry: [
         ({ context }) =>
           context.spstRef.send({
@@ -264,9 +268,10 @@ const dmMachine = setup({
         },
       },
     },
-    Idle: { on: { START: "Active" } },
-    End: { on: { START: "Active" } },
+    Idle: { meta: { view: "ready" }, on: { START: "Active" } },
+    End: { meta: { view: "end" }, on: { START: "Active" } },
     Active: {
+      meta: { view: "active" },
       initial: "Conversation",
       on: {
         STOP: {
@@ -435,8 +440,8 @@ const dmMachine = setup({
         },
       },
     },
-    Stopped: { on: { START: "Active" } },
-    Fail: {},
+    Stopped: { meta: { view: "stopped" }, on: { SETUP: "BeforeSetup" } },
+    Fail: { meta: { view: "fail" } },
   },
 });
 
@@ -445,16 +450,22 @@ const talaSpeechService = createActor(dmMachine, {
 });
 talaSpeechService.start();
 
-window.TalaSpeechUIState = talaSpeechService.getSnapshot().value;
+window.TalaSpeechUIState = "initiating";
 talaSpeechService.subscribe((state) => {
-  if (!state.value["Active"]) {
-    window.TalaSpeechUIState = state.value;
+  let metaView: string | undefined;
+  let metaTS: { view?: string } = Object.values(state.getMeta())[0] || {
+    view: undefined,
+  };
+  let metaSS: { view?: string } = Object.values(
+    state.context.spstRef.getSnapshot().getMeta(),
+  )[0] || { view: undefined };
+  if (metaTS.view === "active") {
+    metaView = metaSS.view;
   } else {
-    let meta = state.context.spstRef.getSnapshot().getMeta();
-    window.TalaSpeechUIState = (
-      (Object.values(meta)[0] as { view: string }) || { view: "Active" }
-    ).view;
+    metaView = metaTS.view;
   }
-  console.debug("[TalaSpeechUIState]", window.TalaSpeechUIState);
+  window.TalaSpeechUIState !== metaView &&
+    console.debug("[TalaSpeechUIState]", metaView);
+  window.TalaSpeechUIState = metaView;
 });
 window.TalaSpeech = talaSpeechService;

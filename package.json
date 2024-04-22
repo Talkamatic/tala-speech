@@ -1,6 +1,6 @@
 {
   "name": "tala-speech",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "license": "GPL-3.0",
   "scripts": {
     "build": "vite build --outDir dist/browser",
@@ -10,7 +10,7 @@
   "author": "Talkamatic AB",
   "packageManager": "yarn@4.0.2",
   "dependencies": {
-    "speechstate": "^2.0.4"
+    "speechstate": "^2.0.5"
   },
   "devDependencies": {
     "@statelyai/inspect": "^0.2.5",
