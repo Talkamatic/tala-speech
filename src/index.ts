@@ -334,6 +334,10 @@ const dmMachine = setup({
                             ? context.tdmState.output.expected_passivity * 1000
                             : context.tdmState.output.expected_passivity) ??
                           1000 * 3600 * 24,
+                        hints: context.tdmState.context.asr_hints,
+                        completeTimeout:
+                          context.tdmState.output.speech_complete_timeout *
+                          1000,
                       },
                     }),
                   on: {
