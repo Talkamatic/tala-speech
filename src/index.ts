@@ -299,6 +299,10 @@ const dmMachine = setup({
                       },
                     }),
                   on: {
+                    CONTROL: {
+                      actions: ({ context }) =>
+                        context.spstRef.send({ type: "CONTROL" }),
+                    },
                     SPEAK_COMPLETE: [
                       {
                         target: "#DM.End",
@@ -343,6 +347,10 @@ const dmMachine = setup({
                   on: {
                     RECOGNISED: "Prompt",
                     ASR_NOINPUT: "Prompt",
+                    CONTROL: {
+                      actions: ({ context }) =>
+                        context.spstRef.send({ type: "CONTROL" }),
+                    },
                   },
                 },
               },
