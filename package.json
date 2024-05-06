@@ -1,6 +1,6 @@
 {
   "name": "tala-speech",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "license": "GPL-3.0",
   "scripts": {
     "build": "vite build --outDir dist/browser",
