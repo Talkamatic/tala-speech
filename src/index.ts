@@ -217,6 +217,7 @@ const dmMachine = setup({
                   context.tdmSettings.asrDefaultNoInputTimeout || 5000,
                 ttsDefaultVoice:
                   context.tdmSettings.ttsDefaultVoice || "en-US-DavisNeural",
+                ttsLexicon: context.tdmSettings.ttsLexicon,
                 speechRecognitionEndpointId:
                   context.tdmSettings.speechRecognitionEndpointId,
               },
