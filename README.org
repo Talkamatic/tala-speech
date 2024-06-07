@@ -10,7 +10,7 @@ Events to control TalaSpeech:
         deviceID: "", /** required */
         endpoint: "", /** required, <endpoint_URL> */
         azureCredentials: "", /** required, <azure proxy URL or {key: "...",  endpoint: "..."}>*/
-
+        azureRegion: "", /** required */
         locale: "en-US", /** default */
         sessionObjectAdditions: {}, /** default */
         asrDefaultCompleteTimeout: 0, /** default */

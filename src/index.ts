@@ -205,11 +205,12 @@ const dmMachine = setup({
       entry: assign({
         spstRef: ({ spawn, context }) =>
           spawn(
-            speechstate as any,
+            speechstate as any, // fixme
             {
               id: "speechstate",
               input: {
                 azureCredentials: context.tdmSettings.azureCredentials,
+                azureRegion: context.tdmSettings.azureRegion,
                 asrDefaultCompleteTimeout:
                   context.tdmSettings.asrDefaultCompleteTimeout || 0,
                 locale: context.tdmSettings.locale || "en-US",
@@ -221,7 +222,7 @@ const dmMachine = setup({
                 speechRecognitionEndpointId:
                   context.tdmSettings.speechRecognitionEndpointId,
               },
-            } as any,
+            } as any, // fixme
           ),
       }),
       invoke: {
