@@ -10,7 +10,7 @@
   "author": "Talkamatic AB",
   "packageManager": "yarn@4.0.2",
   "dependencies": {
-    "speechstate": "^2.2.0"
+    "speechstate": "^2.3.0"
   },
   "devDependencies": {
     "@statelyai/inspect": "^0.2.5",
