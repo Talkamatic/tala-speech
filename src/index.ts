@@ -12,6 +12,7 @@ import {
   Hypothesis,
   RecogniseParameters,
   Settings,
+  SpeechStateExternalEvent,
 } from "speechstate";
 
 // import { createSkyInspector } from "@statelyai/inspect";
@@ -40,25 +41,10 @@ interface DMContext {
 }
 
 type DMEvent =
-  | SSDMEvent
+  | SpeechStateExternalEvent
   | { type: "SETUP"; value: TDMSettings }
   | { type: "TURN_PAGE"; value: string }
   | { type: "START" };
-
-type SSDMEvent = // todo move to SpeechState
-
-    | { type: "PREPARE" }
-    | { type: "ASRTTS_READY" }
-    | { type: "CONTROL" }
-    | { type: "STOP" }
-    | { type: "SPEAK"; value: Agenda }
-    | { type: "LISTEN"; value: RecogniseParameters }
-    | { type: "TTS_STARTED" }
-    | { type: "TTS_ERROR" }
-    | { type: "SPEAK_COMPLETE" }
-    | { type: "ASR_STARTED" }
-    | { type: "ASR_NOINPUT" }
-    | { type: "RECOGNISED"; value: Hypothesis[] };
 
 async function tdmRequest(endpoint: string, requestBody: any) {
   return fetch(
