@@ -1,8 +1,8 @@
-#+TITLE: TalaSpeech 2.0 interface description
+#+TITLE: TalaSpeech 2 interface description
 TalaSpeech [[https://stately.ai/docs/actors][actor]] can be accessed through ~window.TalaSpeech~.
 
 Events to control TalaSpeech:
-- ={ type: "SETUP"; value: TDMSettings }= :: configure TalaSpeech.
+- ~window.TalaSpeech.send({ type: "SETUP"; value: TDMSettings })~ :: configure TalaSpeech.
   #+begin_src javascript
     window.TalaSpeech.send({
       type: "SETUP",
@@ -23,17 +23,34 @@ Events to control TalaSpeech:
   #+end_src
 
 - ~window.TalaSpeech.send({type: "TURNPAGE", value: "1"})~ :: "turn
-  page" to get to a new dialogue
+  page" to get to a new dialogue (in this example to page 1)
 - ~window.TalaSpeech.send({type: "PREPARE"})~ :: prepare ASR and TTS resources
 - ~window.TalaSpeech.send({type: "START"})~ :: start the dialogue
+- ~window.TalaSpeech.send({type: "CONTROL"})~ :: pause/continue
+- ~window.TalaSpeech.send({type: "STOP"})~ :: stop
 
 
 Observing state:
-- Tala-speech: =window.TalaSpeech.getSnapshot().value=
-- TDM: =window.TalaSpeech.getSnapshot().context.tdmState=
-- SpeechState (ASR and TTS status):
-  =window.TalaSpeech.getSnapshot().context.spstRef.getSnapshot().value=
-* Statecharts
+- UI state: ~window.TalaSpeechUIState~ (see below)
+
+- In addition (optionally):
+  - Tala-speech: ~window.TalaSpeech.getSnapshot().value~
+  - Talkamatic backend: ~window.TalaSpeech.getSnapshot().context.tdmState~
+  - SpeechState (ASR and TTS status):
+   ~window.TalaSpeech.getSnapshot().context.spstRef.getSnapshot().value~
+* UI State values
+    - ~"initiating"~ :: initial state, waiting for ~SETUP~
+    - ~"before-prepare"~ :: connection with backend established, waiting for ~PREPARE~
+    - ~"ready"~ :: ready to ~START~
+    - ~"speaking"~ :: system is speaking
+    - ~"recognising"~ :: system is recognising (listening)
+    - ~"idle"~ :: gap between speaking and listening ("thinking"), intended to be very short
+    - ~"speaking-paused"~ :: speaking is paused
+    - ~"recognising-paused"~ :: listening is paused
+    - ~"end"~ :: dialogue has reached its end (need to ~TURN_PAGE~ and ~START~)
+    - ~"stopped"~ :: dialogue is stopped. Reload the page or ~SETUP~ to start over.
+
+* COMMENT Statecharts
 ([[http://www.wisdom.weizmann.ac.il/~dharel/SCANNED.PAPERS/Statecharts.pdf ][Harel statecharts]])
 ** Tala-speech
 #+begin_src plantuml :results output replace :file docs/diagrams/tala-speech.svg :exports results
