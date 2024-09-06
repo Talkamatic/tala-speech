@@ -99,6 +99,7 @@ const nlInputBody = (
     moves: moves,
   },
   request: {
+    request_id: "1234",
     natural_language_input: {
       modality: "speech",
       hypotheses: hypotheses,
@@ -445,7 +446,7 @@ const dmMachine = setup({
   },
 });
 
-const talaSpeechService = createActor(dmMachine, {
+export const talaSpeechService = createActor(dmMachine, {
   /* inspect */
 });
 talaSpeechService.start();
