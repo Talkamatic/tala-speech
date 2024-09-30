@@ -8,9 +8,7 @@ import {
 } from "xstate";
 import {
   speechstate,
-  Agenda,
   Hypothesis,
-  RecogniseParameters,
   Settings,
   SpeechStateExternalEvent,
 } from "speechstate";
@@ -38,6 +36,7 @@ interface DMContext {
   segment?: string;
   tdmState?: any;
   lastResult?: Hypothesis[];
+  avatarName?: string;
 }
 
 type DMEvent =
@@ -113,9 +112,9 @@ const passivityBody = (sessionObject: any) => ({
 });
 
 const dmMachine = setup({
-  types: {
-    context: {} as DMContext,
-    events: {} as DMEvent,
+  types: {} as {
+    context: DMContext;
+    events: DMEvent;
   },
   actions: {
     tdmAssign: assign((_, params: any) => {
@@ -290,6 +289,14 @@ const dmMachine = setup({
                     CONTROL: {
                       actions: ({ context }) =>
                         context.spstRef.send({ type: "CONTROL" }),
+                    },
+                    STREAMING_SET_PERSONA: {
+                      actions: [
+                        () => console.debug("[SpSt→DM] STREAMING_SET_PERSONA"),
+                        assign({
+                          avatarName: ({ event }) => event.value,
+                        }),
+                      ],
                     },
                     SPEAK_COMPLETE: [
                       {

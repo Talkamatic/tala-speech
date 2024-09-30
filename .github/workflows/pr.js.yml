@@ -1,8 +1,8 @@
-name: Node.js CI
+name: Build and publish PR
 
 on:
   pull_request:
-    branches: [ "tala-speech-2.0" ]
+    branches: [ "main" ]
 jobs:
   build:
 
@@ -20,3 +20,10 @@ jobs:
       - run: yarn
       - run: yarn exec tsc --outDir dist/lib
       - run: yarn exec vite build --outDir dist/browser
+
+
+      - run: npm version prerelease --no-git-tag-version --preid=${{ format('pr{0}-{1}-{2}', github.event.number, github.run_attempt, github.run_id) }}
+      - name: Publish to NPM registry
+        run: npm publish --tag ${{ format('pr{0}', github.event.number) }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
