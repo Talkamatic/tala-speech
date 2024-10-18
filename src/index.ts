@@ -13,10 +13,6 @@ import {
   SpeechStateExternalEvent,
 } from "speechstate";
 
-// import { createSkyInspector } from "@statelyai/inspect";
-
-// const { inspect } = createSkyInspector();
-
 declare global {
   interface Window {
     TalaSpeech: AnyActor;
@@ -340,8 +336,7 @@ const dmMachine = setup({
                       },
                     }),
                   on: {
-                    RECOGNISED: "Prompt",
-                    ASR_NOINPUT: "Prompt",
+                    LISTEN_COMPLETE: "Prompt",
                     CONTROL: {
                       actions: ({ context }) =>
                         context.spstRef.send({ type: "CONTROL" }),
@@ -452,9 +447,7 @@ const dmMachine = setup({
   },
 });
 
-const talaSpeechService = createActor(dmMachine, {
-  /* inspect */
-});
+const talaSpeechService = createActor(dmMachine);
 talaSpeechService.start();
 
 window.TalaSpeechUIState = "initiating";
