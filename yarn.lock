@@ -3604,12 +3604,12 @@ __metadata:
   linkType: hard
 
 "speechstate@npm:pr7":
-  version: 2.6.1-pr7-1-11399376019.0
-  resolution: "speechstate@npm:2.6.1-pr7-1-11399376019.0"
+  version: 2.6.1-pr7-1-11406194674.0
+  resolution: "speechstate@npm:2.6.1-pr7-1-11406194674.0"
   dependencies:
     "@vladmaraev/web-speech-cognitive-services-davi": ^2.0.16
     xstate: ^5.17.4
-  checksum: 85cd0db3da25d4c9ecd33feb1ee461739bc030a55ddfc6f71e62dc4c5fcb2ef88a1770b2b971cc2ed52c816c90443830d11b467d20750668a5a9447f9fa61916
+  checksum: b404f399c1f2a1119772575229d57e7fcdd8caccc6f4ab6a343798a1e43702c0097cf2b3b913217b0682e2e4a32056363d18343cc69152d038c76b442a6a0dd3
   languageName: node
   linkType: hard
 
