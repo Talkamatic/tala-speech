@@ -13,10 +13,6 @@ import {
   SpeechStateExternalEvent,
 } from "speechstate";
 
-// import { createSkyInspector } from "@statelyai/inspect";
-
-// const { inspect } = createSkyInspector();
-
 declare global {
   interface Window {
     TalaSpeech: AnyActor;
@@ -194,18 +190,18 @@ const dmMachine = setup({
             {
               id: "speechstate",
               input: {
-                azureCredentials: context.tdmSettings.azureCredentials,
-                azureRegion: context.tdmSettings.azureRegion,
+                azureCredentials: context.tdmSettings!.azureCredentials,
+                azureRegion: context.tdmSettings!.azureRegion,
                 asrDefaultCompleteTimeout:
-                  context.tdmSettings.asrDefaultCompleteTimeout || 0,
-                locale: context.tdmSettings.locale || "en-US",
+                  context.tdmSettings!.asrDefaultCompleteTimeout || 0,
+                locale: context.tdmSettings!.locale || "en-US",
                 asrDefaultNoInputTimeout:
-                  context.tdmSettings.asrDefaultNoInputTimeout || 5000,
+                  context.tdmSettings!.asrDefaultNoInputTimeout || 5000,
                 ttsDefaultVoice:
-                  context.tdmSettings.ttsDefaultVoice || "en-US-DavisNeural",
-                ttsLexicon: context.tdmSettings.ttsLexicon,
+                  context.tdmSettings!.ttsDefaultVoice || "en-US-DavisNeural",
+                ttsLexicon: context.tdmSettings!.ttsLexicon,
                 speechRecognitionEndpointId:
-                  context.tdmSettings.speechRecognitionEndpointId,
+                  context.tdmSettings!.speechRecognitionEndpointId,
               },
             } as any, // fixme
           ),
@@ -213,15 +209,18 @@ const dmMachine = setup({
       invoke: {
         src: "startSession",
         input: ({ context }) => ({
-          endpoint: context.tdmSettings.endpoint,
-          deviceID: context.tdmSettings.deviceID,
-          sessionObjectAdditions: context.tdmSettings.sessionObjectAdditions,
+          endpoint: context.tdmSettings!.endpoint,
+          deviceID: context.tdmSettings!.deviceID,
+          sessionObjectAdditions: context.tdmSettings!.sessionObjectAdditions,
         }),
         onDone: [
           {
             target: "BeforePrepare",
             actions: [
-              { type: "tdmAssign", params: ({ event }) => event.output },
+              {
+                type: "tdmAssign",
+                params: ({ event }: { event: any }) => event.output,
+              },
               assign({
                 segment: ({ context }) =>
                   context.tdmState.context.available_ddds[0],
@@ -340,8 +339,10 @@ const dmMachine = setup({
                       },
                     }),
                   on: {
-                    RECOGNISED: "Prompt",
-                    ASR_NOINPUT: "Prompt",
+                    LISTEN_COMPLETE: {
+                      actions: () => console.debug("[SpSt→DM] LISTEN_COMPLETE"),
+                      target: "Prompt",
+                    },
                     CONTROL: {
                       actions: ({ context }) =>
                         context.spstRef.send({ type: "CONTROL" }),
@@ -357,9 +358,9 @@ const dmMachine = setup({
                   invoke: {
                     src: "sendSegment",
                     input: ({ context }) => ({
-                      endpoint: context.tdmSettings.endpoint,
+                      endpoint: context.tdmSettings!.endpoint,
                       sessionObject: context.tdmState.session,
-                      segment: context.segment,
+                      segment: context.segment!,
                     }),
                     onDone: [
                       {
@@ -367,7 +368,7 @@ const dmMachine = setup({
                         actions: [
                           {
                             type: "tdmAssign",
-                            params: ({ event }) => event.output,
+                            params: ({ event }: { event: any }) => event.output,
                           },
                         ],
                         guard: ({ event }) => !!event.output,
@@ -398,18 +399,18 @@ const dmMachine = setup({
                   invoke: {
                     src: "nlInput",
                     input: ({ context }) => ({
-                      endpoint: context.tdmSettings.endpoint,
+                      endpoint: context.tdmSettings!.endpoint,
                       sessionObject: context.tdmState.session,
                       activeDDD: context.tdmState.context.active_ddd,
                       moves: context.tdmState.output.moves,
-                      lastResult: context.lastResult,
+                      lastResult: context.lastResult!,
                     }),
                     onDone: [
                       {
                         target: "Idle",
                         actions: {
                           type: "tdmAssign",
-                          params: ({ event }) => event.output,
+                          params: ({ event }: { event: any }) => event.output,
                         },
                         guard: ({ event }) => !!event.output,
                       },
@@ -424,7 +425,7 @@ const dmMachine = setup({
                   invoke: {
                     src: "passivity",
                     input: ({ context }) => ({
-                      endpoint: context.tdmSettings.endpoint,
+                      endpoint: context.tdmSettings!.endpoint,
                       sessionObject: context.tdmState.session,
                     }),
                     onDone: [
@@ -432,7 +433,7 @@ const dmMachine = setup({
                         target: "Idle",
                         actions: {
                           type: "tdmAssign",
-                          params: ({ event }) => event.output,
+                          params: ({ event }: { event: any }) => event.output,
                         },
                         guard: ({ event }) => !!event.output,
                       },
@@ -452,9 +453,7 @@ const dmMachine = setup({
   },
 });
 
-const talaSpeechService = createActor(dmMachine, {
-  /* inspect */
-});
+const talaSpeechService = createActor(dmMachine);
 talaSpeechService.start();
 
 window.TalaSpeechUIState = "initiating";
