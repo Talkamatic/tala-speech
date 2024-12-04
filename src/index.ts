@@ -282,6 +282,8 @@ const dmMachine = setup({
                       value: {
                         utterance: context.tdmState.output.utterance,
                         stream: `https://tala-event-sse.azurewebsites.net/event-sse/${context.tdmState.session.session_id}`,
+                        cache:
+                          "https://tala-tts-service.azurewebsites.net/api/",
                       },
                     }),
                   on: {
