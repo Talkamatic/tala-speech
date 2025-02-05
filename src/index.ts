@@ -117,6 +117,19 @@ const dmMachine = setup({
       console.debug("[tdmState]", params);
       return { tdmState: params };
     }),
+    "speechstate.updateAsrParams": ({ context }) =>
+      context.spstRef.send({
+        type: "UPDATE_ASR_PARAMS",
+        value: {
+          noInputTimeout:
+            (context.tdmState.output.expected_passivity
+              ? context.tdmState.output.expected_passivity * 1000
+              : context.tdmState.output.expected_passivity) ?? 1000 * 3600 * 24,
+          hints: context.tdmState.context.asr_hints,
+          completeTimeout:
+            context.tdmState.output.speech_complete_timeout * 1000,
+        },
+      }),
   },
   actors: {
     startSession: fromPromise<
@@ -282,15 +295,18 @@ const dmMachine = setup({
                       value: {
                         utterance: context.tdmState.output.utterance,
                         stream: `https://tala-event-sse.azurewebsites.net/event-sse/${context.tdmState.session.session_id}`,
+                        bargeIn: context.tdmState.session.barge_in && {
+                          hints: context.tdmState.context.asr_hints,
+                          /** 0 vs null (null = ∞)*/
+                          completeTimeout:
+                            context.tdmState.output.speech_complete_timeout *
+                            1000,
+                        },
                         cache:
                           "https://tala-tts-service.azurewebsites.net/api/",
                       },
                     }),
                   on: {
-                    CONTROL: {
-                      actions: ({ context }) =>
-                        context.spstRef.send({ type: "CONTROL" }),
-                    },
                     STREAMING_SET_PERSONA: {
                       actions: [
                         () => console.debug("[SpSt→DM] STREAMING_SET_PERSONA"),
@@ -299,51 +315,10 @@ const dmMachine = setup({
                         }),
                       ],
                     },
-                    SPEAK_COMPLETE: [
-                      {
-                        target: "#DM.End",
-                        guard: ({ context }) =>
-                          context.tdmState.output.actions.some((item: any) =>
-                            [
-                              "EndOfSection",
-                              "EndSession",
-                              "EndConversation",
-                            ].includes(item.name),
-                          ),
-                      },
-                      {
-                        /** if passivity is 0 don't listen */
-                        target: "Prompt",
-                        actions: raise({ type: "ASR_NOINPUT" }),
-                        reenter: true,
-                        guard: ({ context }) =>
-                          context.tdmState.output.expected_passivity === 0,
-                      },
-                      { target: "Ask" },
-                    ],
-                  },
-                },
-                Ask: {
-                  entry: ({ context }) =>
-                    context.spstRef.send({
-                      type: "LISTEN",
-                      value: {
-                        /** 0 vs null (null = ∞)*/
-                        noInputTimeout:
-                          (context.tdmState.output.expected_passivity
-                            ? context.tdmState.output.expected_passivity * 1000
-                            : context.tdmState.output.expected_passivity) ??
-                          1000 * 3600 * 24,
-                        hints: context.tdmState.context.asr_hints,
-                        completeTimeout:
-                          context.tdmState.output.speech_complete_timeout *
-                          1000,
-                      },
-                    }),
-                  on: {
                     LISTEN_COMPLETE: {
                       actions: () => console.debug("[SpSt→DM] LISTEN_COMPLETE"),
                       target: "Prompt",
+                      reenter: true,
                     },
                     CONTROL: {
                       actions: ({ context }) =>
@@ -372,6 +347,7 @@ const dmMachine = setup({
                             type: "tdmAssign",
                             params: ({ event }: { event: any }) => event.output,
                           },
+                          { type: "speechstate.updateAsrParams" },
                         ],
                         guard: ({ event }) => !!event.output,
                       },
@@ -433,10 +409,13 @@ const dmMachine = setup({
                     onDone: [
                       {
                         target: "Idle",
-                        actions: {
-                          type: "tdmAssign",
-                          params: ({ event }: { event: any }) => event.output,
-                        },
+                        actions: [
+                          {
+                            type: "tdmAssign",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
+                          { type: "speechstate.updateAsrParams" },
+                        ],
                         guard: ({ event }) => !!event.output,
                       },
                       { target: "#DM.Fail" },
