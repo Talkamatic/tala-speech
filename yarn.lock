@@ -3603,13 +3603,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"speechstate@npm:pr16":
-  version: 2.8.3-pr16-1-13287957868.0
-  resolution: "speechstate@npm:2.8.3-pr16-1-13287957868.0"
+"speechstate@npm:^2.9.0":
+  version: 2.9.0
+  resolution: "speechstate@npm:2.9.0"
   dependencies:
     "@vladmaraev/web-speech-cognitive-services-davi": ^2.0.16
     xstate: ^5.17.4
-  checksum: 78fbd674d8d49201a69c27f5edeb0dc6507d1cb0794e8e6e38f3374e95e03907d4d953fc05e46080183a94133570126e083b25b9ebaf7bb186f4eeb8909fcb08
+  checksum: b52f3526afd19608a1067a276e94383b78d1dcc355386181e5891532f0e0e04ce1cf14cd607e955290a16bebc5b50ae99949d2bf38af3388eb676d0ffb5d615c
   languageName: node
   linkType: hard
 
@@ -3699,7 +3699,7 @@ __metadata:
   resolution: "tala-speech@workspace:."
   dependencies:
     "@statelyai/inspect": ^0.4.0
-    speechstate: pr16
+    speechstate: ^2.9.0
     typescript: ^5.3.3
     typescript-language-server: ^4.3.1
     vite: ^5.4.2
