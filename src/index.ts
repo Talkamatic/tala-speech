@@ -185,26 +185,25 @@ const dmMachine = setup({
       meta: { view: "initiating" },
       entry: assign({
         spstRef: ({ spawn, context }) =>
-          spawn(
-            speechstate as any, // fixme
-            {
-              id: "speechstate",
-              input: {
-                azureCredentials: context.tdmSettings!.azureCredentials,
-                azureRegion: context.tdmSettings!.azureRegion,
-                asrDefaultCompleteTimeout:
-                  context.tdmSettings!.asrDefaultCompleteTimeout || 0,
-                locale: context.tdmSettings!.locale || "en-US",
-                asrDefaultNoInputTimeout:
-                  context.tdmSettings!.asrDefaultNoInputTimeout || 5000,
-                ttsDefaultVoice:
-                  context.tdmSettings!.ttsDefaultVoice || "en-US-DavisNeural",
-                ttsLexicon: context.tdmSettings!.ttsLexicon,
-                speechRecognitionEndpointId:
-                  context.tdmSettings!.speechRecognitionEndpointId,
-              },
-            } as any, // fixme
-          ),
+          /** TODO: fix typings */
+          spawn(speechstate as any, {
+            id: "speechstate",
+            input: {
+              azureCredentials: context.tdmSettings!.azureCredentials,
+              azureRegion: context.tdmSettings!.azureRegion,
+              asrDefaultCompleteTimeout:
+                context.tdmSettings!.asrDefaultCompleteTimeout || 0,
+              locale: context.tdmSettings!.locale || "en-US",
+              asrDefaultNoInputTimeout:
+                context.tdmSettings!.asrDefaultNoInputTimeout || 5000,
+              ttsDefaultVoice:
+                context.tdmSettings!.ttsDefaultVoice || "en-US-DavisNeural",
+              ttsLexicon: context.tdmSettings!.ttsLexicon,
+              speechRecognitionEndpointId:
+                context.tdmSettings!.speechRecognitionEndpointId,
+              noPonyfill: context.tdmSettings!.noPonyfill || false,
+            } as any,
+          }),
       }),
       invoke: {
         src: "startSession",
@@ -281,7 +280,7 @@ const dmMachine = setup({
                       type: "SPEAK",
                       value: {
                         utterance: context.tdmState.output.utterance,
-                        stream: `https://tala-event-sse.azurewebsites.net/event-sse/${context.tdmState.session.session_id}`,
+                        stream: `${context.tdmState.session.sse_endpoint || "https://tala-event-sse.azurewebsites.net/event-sse"}/${context.tdmState.session.session_id}`,
                         cache:
                           "https://tala-tts-service.azurewebsites.net/api/",
                       },
