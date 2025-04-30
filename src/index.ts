@@ -4,6 +4,7 @@ import {
   createActor,
   setup,
   fromPromise,
+  waitFor,
   AnyActor,
 } from "xstate";
 import {
@@ -13,10 +14,22 @@ import {
   SpeechStateExternalEvent,
 } from "speechstate";
 
+import { metaToTailwind } from "./metaToTailwind";
+
+import "./index.css";
+
 declare global {
   interface Window {
     TalaSpeech: AnyActor;
     TalaSpeechUIState: string | undefined;
+    TalaSpeechRenderer: {
+      renderTalaSpeech: (
+        settings: TDMSettings,
+        page: string,
+        element: HTMLDivElement,
+      ) => void;
+      getDialogueJson: (url: string) => unknown;
+    };
   }
 }
 
@@ -476,3 +489,51 @@ talaSpeechService.subscribe((state) => {
   window.TalaSpeechUIState = metaView;
 });
 window.TalaSpeech = talaSpeechService;
+
+const getDialogueJson = async (url: string) =>
+  await fetch(url).then((resp) => resp.json());
+
+const renderTalaSpeech = async (
+  settings: TDMSettings,
+  page: string,
+  element: HTMLDivElement,
+) => {
+  const button = document.createElement("button");
+  const baseCSS =
+    "bg-neutral-100 text-slate-900 text-2xl text-center py-2 px-5 rounded-r-2xl flex flex-row h-28 w-64 items-center justify-start gap-4 border border-[2px] border-slate-900";
+  button.id = `${element.id}-button`;
+  button.className = baseCSS;
+  talaSpeechService.subscribe((_state) => {
+    button.className = metaToTailwind(window.TalaSpeechUIState, baseCSS);
+  });
+  element.appendChild(button);
+
+  talaSpeechService.send({ type: "SETUP", value: settings });
+  console.log(talaSpeechService.getSnapshot().getMeta());
+  await waitFor(
+    talaSpeechService,
+    (snapshot) => {
+      return (
+        (Object.values(snapshot.getMeta())[0] || {}).view === "before-prepare"
+      );
+    },
+    {
+      timeout: 10_000,
+    },
+  );
+  talaSpeechService.send({ type: "TURN_PAGE", value: page });
+  button.addEventListener(
+    "click",
+    () => {
+      talaSpeechService.send({ type: "START" });
+      talaSpeechService.send({ type: "CONTROL" });
+    },
+    false,
+  );
+  talaSpeechService.send({ type: "PREPARE" });
+};
+
+window.TalaSpeechRenderer = {
+  renderTalaSpeech: renderTalaSpeech,
+  getDialogueJson: getDialogueJson,
+};

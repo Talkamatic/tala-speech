@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@layer components {
+  .animate-speaking {
+    animation: speaking 2000ms infinite;
+    animation-timing-function: linear;
+  }
+  .animate-recognising {
+    animation: recognising 1500ms infinite;
+    animation-timing-function: linear;
+  }
+}
+
+@keyframes recognising {
+  0% {
+    filter: drop-shadow(15px 0px 2px oklch(0.637 0.237 25.331));
+  }
+  25% {
+    filter: drop-shadow(7px 0px 2px oklch(0.637 0.237 25.331));
+  }
+  50% {
+    filter: drop-shadow(-5px 0px 2px oklch(0.637 0.237 25.331));
+  }
+  75% {
+    filter: drop-shadow(7px 0px 2px oklch(0.637 0.237 25.331));
+  }
+  100% {
+    filter: drop-shadow(15px 0px 2px oklch(0.637 0.237 25.331));
+  }
+}
+
+@keyframes speaking {
+  0% {
+    filter: drop-shadow(4px 4px 2px oklch(0.852 0.199 91.936));
+  }
+  25% {
+    filter: drop-shadow(-4px 4px 2px oklch(0.852 0.199 91.936));
+  }
+  50% {
+    filter: drop-shadow(-4px -4px 2px oklch(0.852 0.199 91.936));
+  }
+  75% {
+    filter: drop-shadow(4px -4px 2px oklch(0.852 0.199 91.936));
+  }
+  100% {
+    filter: drop-shadow(4px 4px 2px oklch(0.852 0.199 91.936));
+  }
+}
