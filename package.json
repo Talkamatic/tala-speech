@@ -17,6 +17,6 @@
     "vite": "^5.4.2"
   },
   "dependencies": {
-    "speechstate": "pr21"
+    "speechstate": "2.12.0"
   }
 }

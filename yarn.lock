@@ -1366,14 +1366,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"speechstate@npm:pr21":
-  version: 2.11.1-pr21-1-14512511453.0
-  resolution: "speechstate@npm:2.11.1-pr21-1-14512511453.0"
+"speechstate@npm:2.12.0":
+  version: 2.12.0
+  resolution: "speechstate@npm:2.12.0"
   dependencies:
     microsoft-cognitiveservices-speech-sdk: ^1.43.1
     web-speech-cognitive-services: ^8.1.1
     xstate: ^5.17.4
-  checksum: 5cba5b9817b926cc4f9f916d974d485cd4768349836ced552a518c95d79ff97b9c25ddec9cd5e29434c153406823abf385cb14888052c15093353f206fecc9f1
+  checksum: 30801d8243769834c8e4ec3ae049ca30e5e91f3175ce9a10fd787570981a2da3de93199d2312b56995df0f9fe3221c590601b36563a8984f7dbe5caf4a0cb36a
   languageName: node
   linkType: hard
 
@@ -1447,7 +1447,7 @@ __metadata:
   resolution: "tala-speech@workspace:."
   dependencies:
     "@statelyai/inspect": ^0.4.0
-    speechstate: pr21
+    speechstate: 2.12.0
     typescript: ^5.3.3
     typescript-language-server: ^4.3.1
     vite: ^5.4.2
