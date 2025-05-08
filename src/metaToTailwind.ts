@@ -5,7 +5,6 @@ export const metaToTailwind = (meta: string | undefined, base: string) => {
       return (
         base +
         `cursor-pointer after:content-['Click_to_start!']
-        hover:after:content-['Start?_👆']
         hover:bg-green-50 
         `
       );
@@ -13,7 +12,6 @@ export const metaToTailwind = (meta: string | undefined, base: string) => {
       return (
         base +
         `cursor-pointer after:content-['Speaking...']
-        hover:after:content-['Pause?_👆']
         hover:bg-green-50
         animate-speaking`
       );
@@ -21,7 +19,6 @@ export const metaToTailwind = (meta: string | undefined, base: string) => {
       return (
         base +
         `cursor-pointer after:content-['Listening...']
-        hover:after:content-['Pause?_👆']
         hover:bg-green-50
         animate-recognising`
       );
@@ -29,7 +26,6 @@ export const metaToTailwind = (meta: string | undefined, base: string) => {
       return (
         base +
         `cursor-pointer after:content-['Click_to_continue!']
-        hover:after:content-['Continue?_👆']
         hover:bg-green-50
         `
       );
@@ -37,7 +33,6 @@ export const metaToTailwind = (meta: string | undefined, base: string) => {
       return (
         base +
         `cursor-pointer after:content-['Click_to_continue!']
-        hover:after:content-['Continue?_👆']
         hover:bg-green-50
         `
       );

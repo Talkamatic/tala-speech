@@ -73,7 +73,39 @@ Observing state:
 [[file:docs/diagrams/tala-speech.svg]]
 
 
-To run speechstate locally (for development), run:
+#+begin_src plantuml :results output replace :file docs/diagrams/conversation.svg :exports results
+  skinparam defaultFontName Helvetica
+  state Conversation {
+     state Adjacency {
+       [*] --> Prompt
+       Prompt: entry /speak
+       Ask: entry /listen
+       Prompt --> Ask: SPEAK_COMPLETE
+       Prompt --> Prompt: SPEAK_COMPLETE (passivity == 0)
+       Ask --> Prompt: LISTEN_COMPLETE
+     }
+     --
+     state TDMCalls {
+        [*] --> Start
+        Start: entry /invoke_sendSegment
+        Start --> Idle: onDone /tdmAssign
+        Idle --> NLInput: RECOGNISED
+        Idle --> Passivity: ASR_NOINPUT
+        NLInput: entry /invoke_nlInput
+        NLInput --> Idle: onDone /tdmAssign
+        Passivity: entry /invoke_passivity
+        Passivity --> Idle: onDone /tdmAssign
+     }
+  }
+#+end_src
+
+#+RESULTS:
+[[file:docs/diagrams/conversation.svg]]
+
+
+** To run speechstate locally (for development)
+
+run:
 
 $ cd path/to/speechstate
 $ yarn exec tsc
