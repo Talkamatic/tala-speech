@@ -74,6 +74,7 @@ Observing state:
 
 
 #+begin_src plantuml :results output replace :file docs/diagrams/conversation.svg :exports results
+  hide empty description
   skinparam defaultFontName Helvetica
   state Conversation {
      state Adjacency {
@@ -88,13 +89,16 @@ Observing state:
      state TDMCalls {
         [*] --> Start
         Start: entry /invoke_sendSegment
-        Start --> Idle: onDone /tdmAssign
+        Start -> Idle: onDone\n(no_content)
+        Start -> Idle: onDone\n/tdmAssign
         Idle --> NLInput: RECOGNISED
-        Idle --> Passivity: ASR_NOINPUT
+        Idle -> Passivity: ASR_NOINPUT
         NLInput: entry /invoke_nlInput
-        NLInput --> Idle: onDone /tdmAssign
+        NLInput -> Idle: onDone\n(no_content)
+        NLInput -> Idle: onDone\n/tdmAssign
         Passivity: entry /invoke_passivity
-        Passivity --> Idle: onDone /tdmAssign
+        Passivity -> Idle: onDone\n(no_content)
+        Passivity -> Idle: onDone\n/tdmAssign
      }
   }
 #+end_src
