@@ -379,12 +379,15 @@ const dmMachine = setup({
                     onDone: [
                       {
                         target: "Idle",
-                        actions: [
+                        guard: ({ event }) => !!event.output.no_content,
+                      },
+                      {
+                        target: "Idle",
+                        actions: 
                           {
                             type: "tdmAssign",
                             params: ({ event }: { event: any }) => event.output,
                           },
-                        ],
                         guard: ({ event }) => !!event.output,
                       },
                       {
@@ -422,6 +425,10 @@ const dmMachine = setup({
                     onDone: [
                       {
                         target: "Idle",
+                        guard: ({ event }) => !!event.output.no_content,
+                      },
+                      {
+                        target: "Idle",
                         actions: {
                           type: "tdmAssign",
                           params: ({ event }: { event: any }) => event.output,
@@ -443,6 +450,10 @@ const dmMachine = setup({
                       sessionObject: context.tdmState.session,
                     }),
                     onDone: [
+                      {
+                        target: "Idle",
+                        guard: ({ event }) => !!event.output.no_content,
+                      },
                       {
                         target: "Idle",
                         actions: {
