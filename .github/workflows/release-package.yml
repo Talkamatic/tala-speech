@@ -18,8 +18,8 @@ jobs:
           cache: 'yarn'
           scope: '@talkamatic'
       - run: yarn
-      - run: yarn exec tsc --outDir dist/lib
-      - run: yarn exec vite build --outDir dist/browser
+      - run: yarn compile
+      - run: yarn build
       - name: Publish to NPM registry
         run: npm publish
         env:

@@ -4,7 +4,9 @@ import {
   createActor,
   setup,
   fromPromise,
+  waitFor,
   AnyActor,
+  stateIn,
 } from "xstate";
 import {
   speechstate,
@@ -13,10 +15,22 @@ import {
   SpeechStateExternalEvent,
 } from "speechstate";
 
+import { metaToTailwind } from "./metaToTailwind";
+
+import "./index.css";
+
 declare global {
   interface Window {
     TalaSpeech: AnyActor;
     TalaSpeechUIState: string | undefined;
+    TalaSpeechRenderer: {
+      renderTalaSpeech: (
+        settings: TDMSettings,
+        page: string,
+        element: HTMLDivElement,
+      ) => void;
+      getDialogueJson: (url: string) => unknown;
+    };
   }
 }
 
@@ -162,6 +176,9 @@ const dmMachine = setup({
         tdmRequest(input.endpoint, passivityBody(input.sessionObject)),
     ),
   },
+  guards: {
+    stateInTDMIdle: stateIn("#TDMIdle"),
+  },
 }).createMachine({
   id: "DM",
   initial: "BeforeSetup",
@@ -298,29 +315,46 @@ const dmMachine = setup({
                         }),
                       ],
                     },
-                    SPEAK_COMPLETE: [
-                      {
-                        target: "#DM.End",
-                        guard: ({ context }) =>
-                          context.tdmState.output.actions.some((item: any) =>
-                            [
-                              "EndOfSection",
-                              "EndSession",
-                              "EndConversation",
-                            ].includes(item.name),
-                          ),
-                      },
-                      {
-                        /** if passivity is 0 don't listen */
-                        target: "Prompt",
-                        actions: raise({ type: "ASR_NOINPUT" }),
-                        reenter: true,
-                        guard: ({ context }) =>
-                          context.tdmState.output.expected_passivity === 0,
-                      },
-                      { target: "Ask" },
-                    ],
+                    SPEAK_COMPLETE: "WaitForTDM",
                   },
+                },
+                WaitForTDM: {
+                  initial: "Wait",
+                  states: {
+                    Wait: {
+                      always: [
+                        {
+                          guard: "stateInTDMIdle",
+                          target: "Transition",
+                        },
+                      ],
+                    },
+                    Transition: {
+                      type: "final",
+                    },
+                  },
+                  onDone: [
+                    {
+                      target: "#DM.End",
+                      guard: ({ context }) =>
+                        context.tdmState.output.actions.some((item: any) =>
+                          [
+                            "EndOfSection",
+                            "EndSession",
+                            "EndConversation",
+                          ].includes(item.name),
+                        ),
+                    },
+                    {
+                      /** if passivity is 0 don't listen */
+                      target: "Prompt",
+                      actions: raise({ type: "ASR_NOINPUT" }),
+                      reenter: true,
+                      guard: ({ context }) =>
+                        context.tdmState.output.expected_passivity === 0,
+                    },
+                    { target: "Ask" },
+                  ],
                 },
                 Ask: {
                   entry: ({ context }) =>
@@ -366,12 +400,14 @@ const dmMachine = setup({
                     onDone: [
                       {
                         target: "Idle",
-                        actions: [
-                          {
-                            type: "tdmAssign",
-                            params: ({ event }: { event: any }) => event.output,
-                          },
-                        ],
+                        guard: ({ event }) => !!event.output.no_content,
+                      },
+                      {
+                        target: "Idle",
+                        actions: {
+                          type: "tdmAssign",
+                          params: ({ event }: { event: any }) => event.output,
+                        },
                         guard: ({ event }) => !!event.output,
                       },
                       {
@@ -382,6 +418,7 @@ const dmMachine = setup({
                   },
                 },
                 Idle: {
+                  id: "TDMIdle",
                   on: {
                     RECOGNISED: {
                       target: "NLInput",
@@ -409,6 +446,10 @@ const dmMachine = setup({
                     onDone: [
                       {
                         target: "Idle",
+                        guard: ({ event }) => !!event.output.no_content,
+                      },
+                      {
+                        target: "Idle",
                         actions: {
                           type: "tdmAssign",
                           params: ({ event }: { event: any }) => event.output,
@@ -430,6 +471,10 @@ const dmMachine = setup({
                       sessionObject: context.tdmState.session,
                     }),
                     onDone: [
+                      {
+                        target: "Idle",
+                        guard: ({ event }) => !!event.output.no_content,
+                      },
                       {
                         target: "Idle",
                         actions: {
@@ -476,3 +521,50 @@ talaSpeechService.subscribe((state) => {
   window.TalaSpeechUIState = metaView;
 });
 window.TalaSpeech = talaSpeechService;
+
+const getDialogueJson = async (url: string) =>
+  await fetch(url).then((resp) => resp.json());
+
+const renderTalaSpeech = async (
+  settings: TDMSettings,
+  page: string,
+  element: HTMLDivElement,
+) => {
+  const button = document.createElement("button");
+  const baseCSS =
+    "bg-neutral-100 text-slate-900 text-2xl text-center py-2 px-5 rounded-r-2xl flex flex-row h-28 w-64 items-center justify-start gap-4 border border-[2px] border-slate-900";
+  button.id = `${element.id}-button`;
+  button.className = baseCSS;
+  talaSpeechService.subscribe((_state) => {
+    button.className = metaToTailwind(window.TalaSpeechUIState, baseCSS);
+  });
+  element.appendChild(button);
+
+  talaSpeechService.send({ type: "SETUP", value: settings });
+  await waitFor(
+    talaSpeechService,
+    (snapshot) => {
+      return (
+        (Object.values(snapshot.getMeta())[0] || {}).view === "before-prepare"
+      );
+    },
+    {
+      timeout: 10_000,
+    },
+  );
+  talaSpeechService.send({ type: "TURN_PAGE", value: page });
+  button.addEventListener(
+    "click",
+    () => {
+      talaSpeechService.send({ type: "START" });
+      talaSpeechService.send({ type: "CONTROL" });
+    },
+    false,
+  );
+  talaSpeechService.send({ type: "PREPARE" });
+};
+
+window.TalaSpeechRenderer = {
+  renderTalaSpeech: renderTalaSpeech,
+  getDialogueJson: getDialogueJson,
+};
