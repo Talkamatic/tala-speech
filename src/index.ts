@@ -541,7 +541,6 @@ const renderTalaSpeech = async (
   element.appendChild(button);
 
   talaSpeechService.send({ type: "SETUP", value: settings });
-  console.log(talaSpeechService.getSnapshot().getMeta());
   await waitFor(
     talaSpeechService,
     (snapshot) => {

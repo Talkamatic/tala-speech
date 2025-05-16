@@ -2874,13 +2874,13 @@ __metadata:
   linkType: hard
 
 "speechstate@npm:pr24":
-  version: 2.12.1-pr24-1-14993041631.0
-  resolution: "speechstate@npm:2.12.1-pr24-1-14993041631.0"
+  version: 2.12.1-pr24-1-15067245141.0
+  resolution: "speechstate@npm:2.12.1-pr24-1-15067245141.0"
   dependencies:
     microsoft-cognitiveservices-speech-sdk: ^1.43.1
     web-speech-cognitive-services: ^8.1.1
     xstate: ^5.17.4
-  checksum: 3736ee7e95535dc1597544b09fd57eab2aaf95209b3a630173ab30ec7c6c24a4bd5b277ead0ff13cb38d6fe7d46f293445c3c564d44ebb91367ffd944ea76bef
+  checksum: 20c910cde4e58d6913f68b21fce42aa75cf24d27f4ee507d89b9984087d59f330061646cb6037cf388ac2098f315b148b788a514f6bb1cd35ce5d7885ebec365
   languageName: node
   linkType: hard
 
