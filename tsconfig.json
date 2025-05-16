@@ -10,7 +10,6 @@
     "outDir": "./dist",
     "lib": ["dom", "es2017"],
     "moduleResolution": "node",
-    "plugins": [{ "name": "typescript-plugin-css-modules" }]
   },
-  "include": ["src/index.ts", "src/global.d.ts"]
+  "include": ["src/index.ts"]
 }

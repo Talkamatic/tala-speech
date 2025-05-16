@@ -1,7 +1,7 @@
 {
   "name": "tala-speech",
   "type": "module",
-  "version": "2.13.0",
+  "version": "2.14.0",
   "license": "GPL-3.0",
   "scripts": {
     "compile": "tsc --outDir dist/lib",
@@ -23,6 +23,6 @@
     "typescript-language-server": "^4.3.1"
   },
   "dependencies": {
-    "speechstate": "pr24"
+    "speechstate": "^2.13.0"
   }
 }
