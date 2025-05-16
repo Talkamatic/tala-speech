@@ -6,6 +6,7 @@ import {
   fromPromise,
   waitFor,
   AnyActor,
+  stateIn,
 } from "xstate";
 import {
   speechstate,
@@ -175,6 +176,9 @@ const dmMachine = setup({
         tdmRequest(input.endpoint, passivityBody(input.sessionObject)),
     ),
   },
+  guards: {
+    stateInTDMIdle: stateIn("#TDMIdle"),
+  },
 }).createMachine({
   id: "DM",
   initial: "BeforeSetup",
@@ -311,29 +315,46 @@ const dmMachine = setup({
                         }),
                       ],
                     },
-                    SPEAK_COMPLETE: [
-                      {
-                        target: "#DM.End",
-                        guard: ({ context }) =>
-                          context.tdmState.output.actions.some((item: any) =>
-                            [
-                              "EndOfSection",
-                              "EndSession",
-                              "EndConversation",
-                            ].includes(item.name),
-                          ),
-                      },
-                      {
-                        /** if passivity is 0 don't listen */
-                        target: "Prompt",
-                        actions: raise({ type: "ASR_NOINPUT" }),
-                        reenter: true,
-                        guard: ({ context }) =>
-                          context.tdmState.output.expected_passivity === 0,
-                      },
-                      { target: "Ask" },
-                    ],
+                    SPEAK_COMPLETE: "WaitForTDM",
                   },
+                },
+                WaitForTDM: {
+                  initial: "Wait",
+                  states: {
+                    Wait: {
+                      always: [
+                        {
+                          guard: "stateInTDMIdle",
+                          target: "Transition",
+                        },
+                      ],
+                    },
+                    Transition: {
+                      type: "final",
+                    },
+                  },
+                  onDone: [
+                    {
+                      target: "#DM.End",
+                      guard: ({ context }) =>
+                        context.tdmState.output.actions.some((item: any) =>
+                          [
+                            "EndOfSection",
+                            "EndSession",
+                            "EndConversation",
+                          ].includes(item.name),
+                        ),
+                    },
+                    {
+                      /** if passivity is 0 don't listen */
+                      target: "Prompt",
+                      actions: raise({ type: "ASR_NOINPUT" }),
+                      reenter: true,
+                      guard: ({ context }) =>
+                        context.tdmState.output.expected_passivity === 0,
+                    },
+                    { target: "Ask" },
+                  ],
                 },
                 Ask: {
                   entry: ({ context }) =>
@@ -383,11 +404,10 @@ const dmMachine = setup({
                       },
                       {
                         target: "Idle",
-                        actions: 
-                          {
-                            type: "tdmAssign",
-                            params: ({ event }: { event: any }) => event.output,
-                          },
+                        actions: {
+                          type: "tdmAssign",
+                          params: ({ event }: { event: any }) => event.output,
+                        },
                         guard: ({ event }) => !!event.output,
                       },
                       {
@@ -398,6 +418,7 @@ const dmMachine = setup({
                   },
                 },
                 Idle: {
+                  id: "TDMIdle",
                   on: {
                     RECOGNISED: {
                       target: "NLInput",

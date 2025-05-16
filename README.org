@@ -81,9 +81,14 @@ Observing state:
        [*] --> Prompt
        Prompt: entry /speak
        Ask: entry /listen
-       Prompt --> Ask: SPEAK_COMPLETE
-       Prompt --> Prompt: SPEAK_COMPLETE (passivity == 0)
        Ask --> Prompt: LISTEN_COMPLETE
+       state WaitForTDM #FFFF77 {
+          [*] -> Wait
+          Wait -> [*]: (in TDMCalls.Idle)
+       }
+       Prompt -r-> WaitForTDM: SPEAK_COMPLETE
+       WaitForTDM -> Ask 
+       WaitForTDM -l-> Prompt: (passivity == 0)
      }
      --
      state TDMCalls {
@@ -105,6 +110,35 @@ Observing state:
 
 #+RESULTS:
 [[file:docs/diagrams/conversation.svg]]
+** Sequence diagrams
+#+begin_src plantuml :results output replace :file docs/diagrams/stream-and-tdm.svg :exports results
+  skinparam defaultFontName Helvetica
+  !pragma teoz true
+  participant Pipeline
+  participant TS
+  participant SSE
+  rnote over TS: recognising
+  rnote over TS: idle
+  TS -> Pipeline: nlInput
+  &  TS -> SSE: openStream
+  SSE -> TS: INIT
+  SSE -> TS: STREAMING_CHUNK ""
+  note right
+    sent with X sec delay
+  end note
+  SSE -> TS: STREAMING_DONE
+  rnote over TS: recognising
+  Pipeline -> TS: response(nlInput)
+  note left
+    if this arrives after STREAMING_DONE
+    ASR params are not updated
+  end note
+
+#+end_src
+
+#+RESULTS:
+[[file:docs/diagrams/stream-and-tdm.svg]]
+
 
 
 ** To run speechstate locally (for development)
