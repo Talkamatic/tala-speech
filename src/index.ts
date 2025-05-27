@@ -219,6 +219,7 @@ const dmMachine = setup({
               speechRecognitionEndpointId:
                 context.tdmSettings!.speechRecognitionEndpointId,
               noPonyfill: context.tdmSettings!.noPonyfill || false,
+              newTokenInterval: context.tdmSettings!.newTokenInterval,
             } as any,
           }),
       }),
