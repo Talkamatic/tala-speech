@@ -17,7 +17,9 @@ Events to control TalaSpeech:
         asrDefaultNoInputTimeout: 5000, /** default */
         ttsDefaultVoice: "en-US-DavisNeural", /** default */
         azureLanguageCredentials: undefined, /** default, not supported by TDM*/
-        speechRecognitionEndpointId: undefined /** default */
+        speechRecognitionEndpointId: undefined, /** default */
+        ttsDefaultFiller: "um,", /** default */
+        ttsDefaultFillerDelay: 500, /** default */
         },
     })
   #+end_src

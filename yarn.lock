@@ -2873,14 +2873,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"speechstate@npm:^2.13.1":
-  version: 2.13.1
-  resolution: "speechstate@npm:2.13.1"
+"speechstate@npm:^2.14.0":
+  version: 2.14.0
+  resolution: "speechstate@npm:2.14.0"
   dependencies:
     microsoft-cognitiveservices-speech-sdk: ^1.43.1
     web-speech-cognitive-services: ^8.1.1
     xstate: ^5.17.4
-  checksum: 804461abeaddb43dc74776ad067926c93448fc35fc98fc4a9b799e9c456f7917844c30a3e88eeb44f8aab86d4be1fb291e26823244a18a3eb0ad217a4da6cb6b
+  checksum: 3873e6c961f868a54dde694d747d06a52b776f2263f1dbb832bbb48cef583b5b91935c6fadda209b7beda91e3440d6e0c908f7616b4f74780e8d268079f153d0
   languageName: node
   linkType: hard
 
@@ -3037,7 +3037,7 @@ __metadata:
     "@tailwindcss/cli": ^4.1.4
     esbuild: ^0.25.3
     npm-run-all: ^4.1.5
-    speechstate: ^2.13.1
+    speechstate: ^2.14.0
     tailwindcss: ^4.1.4
     typescript: ^5.3.3
     typescript-language-server: ^4.3.1
