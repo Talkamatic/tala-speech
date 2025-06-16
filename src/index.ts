@@ -203,25 +203,29 @@ const dmMachine = setup({
       entry: assign({
         spstRef: ({ spawn, context }) =>
           /** TODO: fix typings */
-          spawn(speechstate as any, {
-            id: "speechstate",
-            input: {
-              azureCredentials: context.tdmSettings!.azureCredentials,
-              azureRegion: context.tdmSettings!.azureRegion,
-              asrDefaultCompleteTimeout:
-                context.tdmSettings!.asrDefaultCompleteTimeout || 0,
-              locale: context.tdmSettings!.locale || "en-US",
-              asrDefaultNoInputTimeout:
-                context.tdmSettings!.asrDefaultNoInputTimeout || 5000,
-              ttsDefaultVoice:
-                context.tdmSettings!.ttsDefaultVoice || "en-US-DavisNeural",
-              ttsLexicon: context.tdmSettings!.ttsLexicon,
-              speechRecognitionEndpointId:
-                context.tdmSettings!.speechRecognitionEndpointId,
-              noPonyfill: context.tdmSettings!.noPonyfill || false,
-              newTokenInterval: context.tdmSettings!.newTokenInterval,
-            } as any,
-          }),
+          {
+            return spawn(speechstate as any, {
+              id: "speechstate",
+              input: {
+                azureCredentials: context.tdmSettings!.azureCredentials,
+                azureRegion: context.tdmSettings!.azureRegion,
+                asrDefaultCompleteTimeout:
+                  context.tdmSettings!.asrDefaultCompleteTimeout || 0,
+                locale: context.tdmSettings!.locale || "en-US",
+                asrDefaultNoInputTimeout:
+                  context.tdmSettings!.asrDefaultNoInputTimeout || 5000,
+                ttsDefaultVoice:
+                  context.tdmSettings!.ttsDefaultVoice || "en-US-DavisNeural",
+                ttsDefaultFiller: context.tdmSettings!.ttsDefaultFiller,
+                ttsDefaultFillerDelay:
+                  context.tdmSettings!.ttsDefaultFillerDelay,
+                ttsLexicon: context.tdmSettings!.ttsLexicon,
+                speechRecognitionEndpointId:
+                  context.tdmSettings!.speechRecognitionEndpointId,
+                noPonyfill: context.tdmSettings!.noPonyfill || false,
+              } as any,
+            });
+          },
       }),
       invoke: {
         src: "startSession",
