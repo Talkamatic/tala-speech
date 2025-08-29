@@ -2544,6 +2544,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"reconnecting-eventsource@npm:^1.6.4":
+  version: 1.6.4
+  resolution: "reconnecting-eventsource@npm:1.6.4"
+  checksum: e8735901ab7f4c0f25e4f209e172d7a9e8217d5c2bb4094f31e5c569b1b86913515006b6c5e5040d6441d9a71e6621a8ba3e1cdac1854ca5a7cbb64061b75302
+  languageName: node
+  linkType: hard
+
 "reflect.getprototypeof@npm:^1.0.6, reflect.getprototypeof@npm:^1.0.9":
   version: 1.0.10
   resolution: "reflect.getprototypeof@npm:1.0.10"
@@ -2873,14 +2880,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"speechstate@npm:^2.14.0":
-  version: 2.14.0
-  resolution: "speechstate@npm:2.14.0"
+"speechstate@npm:^2.15.0":
+  version: 2.15.0
+  resolution: "speechstate@npm:2.15.0"
   dependencies:
     microsoft-cognitiveservices-speech-sdk: ^1.43.1
+    reconnecting-eventsource: ^1.6.4
     web-speech-cognitive-services: ^8.1.1
     xstate: ^5.17.4
-  checksum: 3873e6c961f868a54dde694d747d06a52b776f2263f1dbb832bbb48cef583b5b91935c6fadda209b7beda91e3440d6e0c908f7616b4f74780e8d268079f153d0
+  checksum: e7182fe5da79a65af4b114e85f0824262f70357eafb7b378fd473a0f0bf19ade5423d5a58ca2efee45e3b7bc53a543b1f79737b8e907d37fdece7a91e0fb9a5e
   languageName: node
   linkType: hard
 
@@ -3037,7 +3045,7 @@ __metadata:
     "@tailwindcss/cli": ^4.1.4
     esbuild: ^0.25.3
     npm-run-all: ^4.1.5
-    speechstate: ^2.14.0
+    speechstate: ^2.15.0
     tailwindcss: ^4.1.4
     typescript: ^5.3.3
     typescript-language-server: ^4.3.1
