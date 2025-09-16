@@ -316,13 +316,17 @@ const dmMachine = setup({
                       value: {
                         utterance: context.tdmState.output.utterance,
                         stream: `https://tala-event-sse.azurewebsites.net/event-sse/${context.tdmState.session.session_id}`,
-                        bargeIn: context.tdmState.session.barge_in && {
-                          hints: context.tdmState.context.asr_hints,
-                          /** 0 vs null (null = ∞)*/
-                          completeTimeout:
-                            context.tdmState.output.speech_complete_timeout *
-                            1000,
-                        },
+
+                        bargeIn:
+                          // FIXME: removed for testing!!!
+                          // context.tdmState.session.barge_in &&
+                          {
+                            hints: context.tdmState.context.asr_hints,
+                            /** 0 vs null (null = ∞)*/
+                            completeTimeout:
+                              context.tdmState.output.speech_complete_timeout *
+                              1000,
+                          },
                         cache:
                           "https://tala-tts-service.azurewebsites.net/api/",
                       },
