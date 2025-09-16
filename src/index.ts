@@ -1,6 +1,5 @@
 import {
   assign,
-  raise,
   createActor,
   setup,
   fromPromise,
@@ -121,6 +120,8 @@ const passivityBody = (sessionObject: any) => ({
   },
 });
 
+const BARGEIN = true;
+
 const dmMachine = setup({
   types: {} as {
     context: DMContext;
@@ -131,19 +132,21 @@ const dmMachine = setup({
       console.debug("[tdmState]", params);
       return { tdmState: params };
     }),
-    "speechstate.updateAsrParams": ({ context }) =>
+    "speechstate.updateAsrParams": ({ context }) => {
+      const value = {
+        noInputTimeout:
+          (context.tdmState.output.expected_passivity
+            ? context.tdmState.output.expected_passivity * 1000
+            : context.tdmState.output.expected_passivity) ?? 1000 * 3600 * 24,
+        hints: context.tdmState.context.asr_hints,
+        completeTimeout: context.tdmState.output.speech_complete_timeout * 1000,
+      };
+      console.debug("[DM] UPDATE_ASR_PARAMETERS", value);
       context.spstRef.send({
         type: "UPDATE_ASR_PARAMETERS",
-        value: {
-          noInputTimeout:
-            (context.tdmState.output.expected_passivity
-              ? context.tdmState.output.expected_passivity * 1000
-              : context.tdmState.output.expected_passivity) ?? 1000 * 3600 * 24,
-          hints: context.tdmState.context.asr_hints,
-          completeTimeout:
-            context.tdmState.output.speech_complete_timeout * 1000,
-        },
-      }),
+        value: value,
+      });
+    },
   },
   actors: {
     startSession: fromPromise<
@@ -315,14 +318,18 @@ const dmMachine = setup({
                       type: "SPEAK",
                       value: {
                         utterance: context.tdmState.output.utterance,
-                        stream: `https://tala-event-sse.azurewebsites.net/event-sse/${context.tdmState.session.session_id}`,
-
+                        stream: `${context.tdmState.session.sse_endpoint}/${context.tdmState.session.session_id}`,
                         bargeIn:
                           // FIXME: removed for testing!!!
-                          // context.tdmState.session.barge_in &&
-                          {
+                          BARGEIN && {
                             hints: context.tdmState.context.asr_hints,
                             /** 0 vs null (null = ∞)*/
+                            noInputTimeout:
+                              (context.tdmState.output.expected_passivity
+                                ? context.tdmState.output.expected_passivity *
+                                  1000
+                                : context.tdmState.output.expected_passivity) ??
+                              1000 * 3600 * 24,
                             completeTimeout:
                               context.tdmState.output.speech_complete_timeout *
                               1000,
@@ -340,7 +347,16 @@ const dmMachine = setup({
                         }),
                       ],
                     },
-                    SPEAK_COMPLETE: "WaitForTDM",
+                    SPEAK_COMPLETE: {
+                      target: "Ask",
+                      reenter: true,
+                      guard: () => BARGEIN,
+                    },
+                    LISTEN_COMPLETE: {
+                      target: "Ask",
+                      reenter: true,
+                      guard: () => BARGEIN,
+                    },
                   },
                 },
                 WaitForTDM: {
@@ -375,21 +391,21 @@ const dmMachine = setup({
                         return false;
                       },
                     },
-                    {
-                      /** if passivity is 0 don't listen */
-                      target: "Prompt",
-                      actions: raise({ type: "ASR_NOINPUT" }),
-                      reenter: true,
-                      guard: ({ context }) => {
-                        if (context.tdmState.output) {
-                          return (
-                            context.tdmState.output.expected_passivity === 0
-                          );
-                        }
-                        return false;
-                      },
-                    },
-                    { target: "Ask" },
+                    // {
+                    //   /** if passivity is 0 don't listen */
+                    //   target: "Prompt",
+                    //   actions: raise({ type: "ASR_NOINPUT" }),
+                    //   reenter: true,
+                    //   guard: ({ context }) => {
+                    //     if (context.tdmState.output) {
+                    //       return (
+                    //         context.tdmState.output.expected_passivity === 0
+                    //       );
+                    //     }
+                    //     return false;
+                    //   },
+                    // },
+                    { target: "Prompt" },
                   ],
                 },
                 Ask: {
@@ -427,6 +443,7 @@ const dmMachine = setup({
               initial: "Start",
               states: {
                 Start: {
+                  entry: () => console.debug("[DM→TDM] sendSegment"),
                   invoke: {
                     src: "sendSegment",
                     input: ({ context }) => ({
@@ -470,6 +487,7 @@ const dmMachine = setup({
                   },
                 },
                 NLInput: {
+                  entry: () => console.debug("[DM→TDM] nlInput"),
                   invoke: {
                     src: "nlInput",
                     input: ({ context }) => ({
@@ -500,6 +518,7 @@ const dmMachine = setup({
                   },
                 },
                 Passivity: {
+                  entry: () => console.debug("[DM→TDM] passivity"),
                   invoke: {
                     src: "passivity",
                     input: ({ context }) => ({
@@ -507,6 +526,10 @@ const dmMachine = setup({
                       sessionObject: context.tdmState.session,
                     }),
                     onDone: [
+                      {
+                        target: "Idle",
+                        guard: ({ event }) => !!event.output.no_content,
+                      },
                       {
                         target: "Idle",
                         actions: [
@@ -554,6 +577,8 @@ talaSpeechService.subscribe((state) => {
   window.TalaSpeechUIState !== metaView &&
     console.debug("[TalaSpeechUIState]", metaView);
   window.TalaSpeechUIState = metaView;
+  console.debug("[TalaSpeechState]", state.value);
+  console.debug("[SpeechState]", state.context.spstRef.getSnapshot().value);
 });
 window.TalaSpeech = talaSpeechService;
 
