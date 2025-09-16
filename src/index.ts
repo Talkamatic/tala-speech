@@ -361,22 +361,33 @@ const dmMachine = setup({
                   onDone: [
                     {
                       target: "#DM.End",
-                      guard: ({ context }) =>
-                        context.tdmState.output.actions.some((item: any) =>
-                          [
-                            "EndOfSection",
-                            "EndSession",
-                            "EndConversation",
-                          ].includes(item.name),
-                        ),
+                      guard: ({ context }) => {
+                        if (context.tdmState.output) {
+                          return context.tdmState.output.actions.some(
+                            (item: any) =>
+                              [
+                                "EndOfSection",
+                                "EndSession",
+                                "EndConversation",
+                              ].includes(item.name),
+                          );
+                        }
+                        return false;
+                      },
                     },
                     {
                       /** if passivity is 0 don't listen */
                       target: "Prompt",
                       actions: raise({ type: "ASR_NOINPUT" }),
                       reenter: true,
-                      guard: ({ context }) =>
-                        context.tdmState.output.expected_passivity === 0,
+                      guard: ({ context }) => {
+                        if (context.tdmState.output) {
+                          return (
+                            context.tdmState.output.expected_passivity === 0
+                          );
+                        }
+                        return false;
+                      },
                     },
                     { target: "Ask" },
                   ],
@@ -392,10 +403,10 @@ const dmMachine = setup({
                             ? context.tdmState.output.expected_passivity * 1000
                             : context.tdmState.output.expected_passivity) ??
                           1000 * 3600 * 24,
-                        hints: context.tdmState.context.asr_hints,
+                        hints: (context.tdmState.context || {}).asr_hints,
                         completeTimeout:
-                          context.tdmState.output.speech_complete_timeout *
-                          1000,
+                          (context.tdmState.output || {})
+                            .speech_complete_timeout * 1000,
                       },
                     }),
                   on: {
