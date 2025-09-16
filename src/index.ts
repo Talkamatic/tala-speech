@@ -133,7 +133,7 @@ const dmMachine = setup({
     }),
     "speechstate.updateAsrParams": ({ context }) =>
       context.spstRef.send({
-        type: "UPDATE_ASR_PARAMS",
+        type: "UPDATE_ASR_PARAMETERS",
         value: {
           noInputTimeout:
             (context.tdmState.output.expected_passivity
