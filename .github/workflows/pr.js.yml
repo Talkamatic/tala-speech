@@ -18,8 +18,8 @@ jobs:
           cache: 'yarn'
           scope: '@talkamatic'
       - run: yarn
-      - run: yarn exec tsc --outDir dist/lib
-      - run: yarn exec vite build --outDir dist/browser
+      - run: yarn compile
+      - run: yarn build
       - run: npm version prerelease --no-git-tag-version --preid=${{ format('pr{0}-{1}-{2}', github.event.number, github.run_attempt, github.run_id) }}
       - name: Publish to NPM registry
         run: npm publish --tag ${{ format('pr{0}', github.event.number) }}

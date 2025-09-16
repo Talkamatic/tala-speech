@@ -1,13 +1,40 @@
-<!DOCTYPE html>
+<!doctype html>
+
 <html>
   <head>
     <title>tala-speech sandbox</title>
     <meta charset="UTF-8" />
+    <link href="dist/browser/index.css" rel="stylesheet" type="text/css" />
+    <script src="dist/browser/index.js" type="text/javascript"></script>
   </head>
 
   <body>
-    <div id="app"></div>
-    <iframe data-xstate style="position: absolute; height: 100%; width: 100%; border: 2px"></iframe>
-    <script type="module" src="src/index.ts"></script>
+    <div id="tala-speech"></div>
+    <script type="module">
+      /** (optional: get dialogue JSON) */
+      const dialogueJson = await window.TalaSpeechRenderer.getDialogueJson(
+        "" /** URL goes here */,
+      );
+
+      window.TalaSpeechRenderer.renderTalaSpeech(
+        {
+          deviceID: "vlad-test-voice-stream" /** required */,
+          endpoint:
+            `` /** required, <endpoint_URL> */ +
+            `${JSON.parse(dialogueJson.offer).offer_id}`,
+          azureCredentials: `` /** required, <azure credentials or URL> */,
+          azureRegion: "" /** required, e.g. swedencentral */,
+          locale: "en-US" /** default */,
+          asrDefaultCompleteTimeout: 0 /** default */,
+          asrDefaultNoInputTimeout: 5000 /** default */,
+          ttsDefaultVoice: "en-US-EchoMultilingualNeural" /** default */,
+          azureLanguageCredentials: undefined /** not supported by TDM */,
+          speechRecognitionEndpointId: undefined /** default */,
+          sessionObjectAdditions: JSON.parse(dialogueJson.offer),
+        },
+        "" /** page, e.g. chapter_1 */,
+        document.getElementById("tala-speech"),
+      );
+    </script>
   </body>
 </html>
