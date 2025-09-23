@@ -579,6 +579,11 @@ talaSpeechService.subscribe((state) => {
   window.TalaSpeechUIState = metaView;
   console.debug("[TalaSpeechState]", state.value);
   console.debug("[SpeechState]", state.context.spstRef.getSnapshot().value);
+  console.debug(
+    "[SpeechState.ASR]",
+    state.context.spstRef.getSnapshot().context.asrRef &&
+      state.context.spstRef.getSnapshot().context.asrRef.getSnapshot().context,
+  );
 });
 window.TalaSpeech = talaSpeechService;
 
