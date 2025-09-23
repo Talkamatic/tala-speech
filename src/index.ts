@@ -561,30 +561,40 @@ const talaSpeechService = createActor(dmMachine);
 talaSpeechService.start();
 
 window.TalaSpeechUIState = "initiating";
-talaSpeechService.subscribe((state) => {
-  let metaView: string | undefined;
-  let metaTS: { view?: string } = Object.values(state.getMeta())[0] || {
-    view: undefined,
-  };
-  let metaSS: { view?: string } = Object.values(
-    state.context.spstRef.getSnapshot().getMeta(),
-  )[0] || { view: undefined };
-  if (metaTS.view === "active") {
-    metaView = metaSS.view;
-  } else {
-    metaView = metaTS.view;
-  }
-  window.TalaSpeechUIState !== metaView &&
-    console.debug("[TalaSpeechUIState]", metaView);
-  window.TalaSpeechUIState = metaView;
-  console.debug("[TalaSpeechState]", state.value);
-  console.debug("[SpeechState]", state.context.spstRef.getSnapshot().value);
-  console.debug(
-    "[SpeechState.ASR]",
-    state.context.spstRef.getSnapshot().context.asrRef &&
-      state.context.spstRef.getSnapshot().context.asrRef.getSnapshot().context,
-  );
-});
+
+const speechStateSubscription = async () => {
+  await waitFor(talaSpeechService, (snapshot) => !!snapshot.context.spstRef);
+  return talaSpeechService
+    .getSnapshot()
+    .context.spstRef.subscribe((state: any) => {
+      let metaView: string | undefined;
+      let metaTS: { view?: string } = Object.values(
+        talaSpeechService.getSnapshot().getMeta(),
+      )[0] || {
+        view: undefined,
+      };
+      let metaSS: { view?: string } = Object.values(state.getMeta())[0] || {
+        view: undefined,
+      };
+      if (metaTS.view === "active") {
+        metaView = metaSS.view;
+      } else {
+        metaView = metaTS.view;
+      }
+      window.TalaSpeechUIState !== metaView &&
+        console.debug("[TalaSpeechUIState]", metaView);
+      window.TalaSpeechUIState = metaView;
+      console.debug("[TalaSpeechState]", talaSpeechService.getSnapshot().value);
+      console.debug("[SpeechState]", state.value);
+      console.debug(
+        "[SpeechState.ASR]",
+        state.context.asrRef && state.context.asrRef.getSnapshot().context,
+      );
+    });
+};
+
+speechStateSubscription();
+
 window.TalaSpeech = talaSpeechService;
 
 const getDialogueJson = async (url: string) =>
@@ -600,10 +610,6 @@ const renderTalaSpeech = async (
     "bg-neutral-100 text-slate-900 text-2xl text-center py-2 px-5 rounded-r-2xl flex flex-row h-28 w-64 items-center justify-start gap-4 border border-[2px] border-slate-900";
   button.id = `${element.id}-button`;
   button.className = baseCSS;
-  talaSpeechService.subscribe((_state) => {
-    button.className = metaToTailwind(window.TalaSpeechUIState, baseCSS);
-  });
-  element.appendChild(button);
 
   talaSpeechService.send({ type: "SETUP", value: settings });
   await waitFor(
@@ -627,6 +633,11 @@ const renderTalaSpeech = async (
     false,
   );
   talaSpeechService.send({ type: "PREPARE" });
+  await waitFor(talaSpeechService, (snapshot) => !!snapshot.context.spstRef);
+  talaSpeechService.getSnapshot().context.spstRef.subscribe(() => {
+    button.className = metaToTailwind(window.TalaSpeechUIState, baseCSS);
+  });
+  element.appendChild(button);
 };
 
 window.TalaSpeechRenderer = {
