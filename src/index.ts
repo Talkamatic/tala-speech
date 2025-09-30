@@ -45,6 +45,7 @@ interface DMContext {
   segment?: string;
   tdmState?: any;
   lastResult?: Hypothesis[];
+  lastBargeIn?: boolean;
   avatarName?: string;
 }
 
@@ -100,6 +101,7 @@ const nlInputBody = (
   ddd: string,
   moves: string[],
   hypotheses: Hypothesis[],
+  bargeIn: boolean
 ) => ({
   session: {
     ...sessionObject,
@@ -111,6 +113,7 @@ const nlInputBody = (
       modality: "speech",
       hypotheses: hypotheses,
     },
+    barge_in: bargeIn
   },
 });
 const passivityBody = (sessionObject: any) => ({
@@ -175,6 +178,7 @@ const dmMachine = setup({
         activeDDD: string;
         moves: string[];
         lastResult: Hypothesis[];
+        bargeIn: boolean;
       }
     >(({ input }) =>
       tdmRequest(
@@ -184,6 +188,7 @@ const dmMachine = setup({
           input.activeDDD,
           input.moves,
           input.lastResult,
+          input.bargeIn
         ),
       ),
     ),
@@ -478,6 +483,7 @@ const dmMachine = setup({
                       actions: [
                         assign({
                           lastResult: ({ event }) => event.value,
+                          lastBargeIn: ({ event }) => event.bargeIn,
                         }),
                       ],
                     },
@@ -496,6 +502,7 @@ const dmMachine = setup({
                       activeDDD: context.tdmState.context.active_ddd,
                       moves: context.tdmState.output.moves,
                       lastResult: context.lastResult!,
+                      bargeIn: context.lastBargeIn || false,
                     }),
                     onDone: [
                       {
