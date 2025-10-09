@@ -339,8 +339,8 @@ const dmMachine = setup({
                               context.tdmState.output.speech_complete_timeout *
                               1000,
                           },
-                        cache:
-                          "https://tala-tts-service.azurewebsites.net/api/",
+                        // cache:
+                        //   "https://tala-tts-service.azurewebsites.net/api/",
                       },
                     }),
                   on: {
@@ -355,12 +355,11 @@ const dmMachine = setup({
                     SPEAK_COMPLETE: {
                       target: "Ask",
                       reenter: true,
-                      guard: () => BARGEIN,
+                      guard: () => !BARGEIN,
                     },
                     LISTEN_COMPLETE: {
-                      target: "Ask",
+                      target: "Prompt",
                       reenter: true,
-                      guard: () => BARGEIN,
                     },
                   },
                 },
@@ -593,10 +592,10 @@ const speechStateSubscription = async () => {
       window.TalaSpeechUIState = metaView;
       console.debug("[TalaSpeechState]", talaSpeechService.getSnapshot().value);
       console.debug("[SpeechState]", state.value);
-      console.debug(
-        "[SpeechState.ASR]",
-        state.context.asrRef && state.context.asrRef.getSnapshot().context,
-      );
+      // console.debug(
+      //   "[SpeechState.ASR]",
+      //   state.context.asrRef && state.context.asrRef.getSnapshot().context,
+      // );
     });
 };
 

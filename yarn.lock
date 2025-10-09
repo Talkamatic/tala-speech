@@ -2881,14 +2881,14 @@ __metadata:
   linkType: hard
 
 "speechstate@npm:pr28":
-  version: 2.15.1-pr28-1-18171747728.0
-  resolution: "speechstate@npm:2.15.1-pr28-1-18171747728.0"
+  version: 2.15.1-pr28-1-18372535263.0
+  resolution: "speechstate@npm:2.15.1-pr28-1-18372535263.0"
   dependencies:
     microsoft-cognitiveservices-speech-sdk: ^1.43.1
     reconnecting-eventsource: ^1.6.4
     web-speech-cognitive-services: ^8.1.1
     xstate: ^5.21.0
-  checksum: 1b51ed6dc38917c4455829d56c8bce255654c437e4b96ab61f812d8d19f233826862947e937abf591133accb4a0b971fc65831c2f2ae6da938c2a63188e2dd48
+  checksum: 3a7d3c859fb17bff6d22a19abc4fe2f291acdaf1b1bfcce7597a02808f37daade5492e6e996662f71e1aa98e2e5c14c580738d566297f2db0116036a5edea1b3
   languageName: node
   linkType: hard
 
