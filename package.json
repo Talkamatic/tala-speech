@@ -5,7 +5,7 @@
   "license": "GPL-3.0",
   "scripts": {
     "compile": "tsc --outDir dist/lib",
-    "esbuild:serve": "esbuild src/index.ts --bundle --serve=localhost:5173 --servedir=. --outdir=dist/browser --watch",
+    "esbuild:serve": "esbuild src/index.ts --bundle --serve=localhost:4200 --servedir=. --outdir=dist/browser --watch",
     "esbuild:bundle": "esbuild src/index.ts --bundle --minify --outdir=dist/browser",
     "tailwind": "tailwindcss -i ./src/input.css -o ./src/index.css",
     "serve": "npm-run-all --parallel \"tailwind --watch\" esbuild:serve",

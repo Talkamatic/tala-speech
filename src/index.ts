@@ -47,6 +47,7 @@ interface DMContext {
   tdmState?: any;
   lastResult?: Hypothesis[];
   avatarName?: string;
+  requestTimer?: number;
 }
 
 type DMEvent =
@@ -200,33 +201,35 @@ const dmMachine = setup({
     },
     GetPages: {
       meta: { view: "initiating" },
-      entry: assign({
-        spstRef: ({ spawn, context }) =>
-          /** TODO: fix typings */
-          {
-            return spawn(speechstate as any, {
-              id: "speechstate",
-              input: {
-                azureCredentials: context.tdmSettings!.azureCredentials,
-                azureRegion: context.tdmSettings!.azureRegion,
-                asrDefaultCompleteTimeout:
-                  context.tdmSettings!.asrDefaultCompleteTimeout || 0,
-                locale: context.tdmSettings!.locale || "en-US",
-                asrDefaultNoInputTimeout:
-                  context.tdmSettings!.asrDefaultNoInputTimeout || 5000,
-                ttsDefaultVoice:
-                  context.tdmSettings!.ttsDefaultVoice || "en-US-DavisNeural",
-                ttsDefaultFiller: context.tdmSettings!.ttsDefaultFiller,
-                ttsDefaultFillerDelay:
-                  context.tdmSettings!.ttsDefaultFillerDelay,
-                ttsLexicon: context.tdmSettings!.ttsLexicon,
-                speechRecognitionEndpointId:
-                  context.tdmSettings!.speechRecognitionEndpointId,
-                noPonyfill: context.tdmSettings!.noPonyfill || false,
-              } as any,
-            });
-          },
-      }),
+      entry: [
+        assign({
+          spstRef: ({ spawn, context }) =>
+            /** TODO: fix typings */
+            {
+              return spawn(speechstate as any, {
+                id: "speechstate",
+                input: {
+                  azureCredentials: context.tdmSettings!.azureCredentials,
+                  azureRegion: context.tdmSettings!.azureRegion,
+                  asrDefaultCompleteTimeout:
+                    context.tdmSettings!.asrDefaultCompleteTimeout || 0,
+                  locale: context.tdmSettings!.locale || "en-US",
+                  asrDefaultNoInputTimeout:
+                    context.tdmSettings!.asrDefaultNoInputTimeout || 5000,
+                  ttsDefaultVoice:
+                    context.tdmSettings!.ttsDefaultVoice || "en-US-DavisNeural",
+                  ttsDefaultFiller: context.tdmSettings!.ttsDefaultFiller,
+                  ttsDefaultFillerDelay:
+                    context.tdmSettings!.ttsDefaultFillerDelay,
+                  ttsLexicon: context.tdmSettings!.ttsLexicon,
+                  speechRecognitionEndpointId:
+                    context.tdmSettings!.speechRecognitionEndpointId,
+                  noPonyfill: context.tdmSettings!.noPonyfill || false,
+                } as any,
+              });
+            },
+        }),
+      ],
       invoke: {
         src: "startSession",
         input: ({ context }) => ({
@@ -544,6 +547,22 @@ const renderTalaSpeech = async (
     button.className = metaToTailwind(window.TalaSpeechUIState, baseCSS);
   });
   element.appendChild(button);
+
+  const debugContainer = document.createElement("details");
+  const debugHeader = document.createElement("summary");
+  debugHeader.appendChild(document.createTextNode("debug"));
+  debugContainer.appendChild(debugHeader);
+  let debugMessage = document.createTextNode("...");
+  debugContainer.id = "debugContainer";
+  debugContainer.addEventListener(
+    "debugMessage",
+    (e: CustomEventInit<string>) => {
+      debugMessage.textContent = e.detail || "";
+    },
+  );
+
+  debugContainer.appendChild(debugMessage);
+  element.appendChild(debugContainer);
 
   talaSpeechService.send({ type: "SETUP", value: settings });
   await waitFor(
