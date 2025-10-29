@@ -101,7 +101,7 @@ const nlInputBody = (
   ddd: string,
   moves: string[],
   hypotheses: Hypothesis[],
-  bargeIn: boolean
+  bargeIn: boolean,
 ) => ({
   session: {
     ...sessionObject,
@@ -113,7 +113,7 @@ const nlInputBody = (
       modality: "speech",
       hypotheses: hypotheses,
     },
-    barge_in: bargeIn
+    barge_in: bargeIn,
   },
 });
 const passivityBody = (sessionObject: any) => ({
@@ -188,7 +188,7 @@ const dmMachine = setup({
           input.activeDDD,
           input.moves,
           input.lastResult,
-          input.bargeIn
+          input.bargeIn,
         ),
       ),
     ),
@@ -302,6 +302,9 @@ const dmMachine = setup({
       meta: { view: "active" },
       initial: "Conversation",
       on: {
+        CONTROL: {
+          actions: ({ context }) => context.spstRef.send({ type: "CONTROL" }),
+        },
         STOP: {
           target: "#DM.Stopped",
           actions: ({ context }) =>
@@ -434,10 +437,6 @@ const dmMachine = setup({
                       actions: () => console.debug("[SpSt→DM] LISTEN_COMPLETE"),
                       target: "Prompt",
                       reenter: true,
-                    },
-                    CONTROL: {
-                      actions: ({ context }) =>
-                        context.spstRef.send({ type: "CONTROL" }),
                     },
                   },
                 },
