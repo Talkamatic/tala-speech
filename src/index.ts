@@ -47,7 +47,7 @@ interface DMContext {
   tdmState?: any;
   lastResult?: Hypothesis[];
   avatarName?: string;
-  requestTimer?: number;
+  executionStartTime?: number;
 }
 
 type DMEvent =
@@ -132,6 +132,25 @@ const dmMachine = setup({
       console.debug("[tdmState]", params);
       return { tdmState: params };
     }),
+    resetNetworkOverheadTimer: assign(() => ({
+      executionStartTime: Date.now(),
+    })),
+    debugExecutionNetworkOverhead: ({ context }, params: any) => {
+      const tdmProcessingTimeMs =
+        (params.handler_responds - params.handler_received_request) * 1000;
+      if (
+        document.getElementById("debugContainer") &&
+        context.executionStartTime
+      ) {
+        console.debug(
+          `[time info] execStartTime: ${context.executionStartTime}, tdm took: ${tdmProcessingTimeMs}`,
+        );
+        const debugEvent = new CustomEvent("debugMessage", {
+          detail: Date.now() - context.executionStartTime - tdmProcessingTimeMs,
+        });
+        document.getElementById("debugContainer")!.dispatchEvent(debugEvent);
+      }
+    },
   },
   actors: {
     startSession: fromPromise<
@@ -201,35 +220,34 @@ const dmMachine = setup({
     },
     GetPages: {
       meta: { view: "initiating" },
-      entry: [
-        assign({
-          spstRef: ({ spawn, context }) =>
-            /** TODO: fix typings */
-            {
-              return spawn(speechstate as any, {
-                id: "speechstate",
-                input: {
-                  azureCredentials: context.tdmSettings!.azureCredentials,
-                  azureRegion: context.tdmSettings!.azureRegion,
-                  asrDefaultCompleteTimeout:
-                    context.tdmSettings!.asrDefaultCompleteTimeout || 0,
-                  locale: context.tdmSettings!.locale || "en-US",
-                  asrDefaultNoInputTimeout:
-                    context.tdmSettings!.asrDefaultNoInputTimeout || 5000,
-                  ttsDefaultVoice:
-                    context.tdmSettings!.ttsDefaultVoice || "en-US-DavisNeural",
-                  ttsDefaultFiller: context.tdmSettings!.ttsDefaultFiller,
-                  ttsDefaultFillerDelay:
-                    context.tdmSettings!.ttsDefaultFillerDelay,
-                  ttsLexicon: context.tdmSettings!.ttsLexicon,
-                  speechRecognitionEndpointId:
-                    context.tdmSettings!.speechRecognitionEndpointId,
-                  noPonyfill: context.tdmSettings!.noPonyfill || false,
-                } as any,
-              });
-            },
-        }),
-      ],
+      entry: "resetNetworkOverheadTimer",
+      exit: assign({
+        spstRef: ({ spawn, context }) =>
+          /** TODO: fix typings */
+          {
+            return spawn(speechstate as any, {
+              id: "speechstate",
+              input: {
+                azureCredentials: context.tdmSettings!.azureCredentials,
+                azureRegion: context.tdmSettings!.azureRegion,
+                asrDefaultCompleteTimeout:
+                  context.tdmSettings!.asrDefaultCompleteTimeout || 0,
+                locale: context.tdmSettings!.locale || "en-US",
+                asrDefaultNoInputTimeout:
+                  context.tdmSettings!.asrDefaultNoInputTimeout || 5000,
+                ttsDefaultVoice:
+                  context.tdmSettings!.ttsDefaultVoice || "en-US-DavisNeural",
+                ttsDefaultFiller: context.tdmSettings!.ttsDefaultFiller,
+                ttsDefaultFillerDelay:
+                  context.tdmSettings!.ttsDefaultFillerDelay,
+                ttsLexicon: context.tdmSettings!.ttsLexicon,
+                speechRecognitionEndpointId:
+                  context.tdmSettings!.speechRecognitionEndpointId,
+                noPonyfill: context.tdmSettings!.noPonyfill || false,
+              } as any,
+            });
+          },
+      }),
       invoke: {
         src: "startSession",
         input: ({ context }) => ({
@@ -241,6 +259,10 @@ const dmMachine = setup({
           {
             target: "BeforePrepare",
             actions: [
+              {
+                type: "debugExecutionNetworkOverhead",
+                params: ({ event }: { event: any }) => event.output.session,
+              },
               {
                 type: "tdmAssign",
                 params: ({ event }: { event: any }) => event.output,
@@ -356,12 +378,14 @@ const dmMachine = setup({
                     {
                       /** if passivity is 0 don't listen */
                       target: "Prompt",
-                      actions: raise({ type: "ASR_NOINPUT" }),
+                      actions: [raise({ type: "ASR_NOINPUT" })],
                       reenter: true,
                       guard: ({ context }) =>
                         context.tdmState.output.expected_passivity === 0,
                     },
-                    { target: "Ask" },
+                    {
+                      target: "Ask",
+                    },
                   ],
                 },
                 Ask: {
@@ -396,6 +420,7 @@ const dmMachine = setup({
             },
             TDMCalls: {
               initial: "Start",
+              entry: "resetNetworkOverheadTimer",
               states: {
                 Start: {
                   invoke: {
@@ -412,10 +437,17 @@ const dmMachine = setup({
                       },
                       {
                         target: "Idle",
-                        actions: {
-                          type: "tdmAssign",
-                          params: ({ event }: { event: any }) => event.output,
-                        },
+                        actions: [
+                          {
+                            type: "tdmAssign",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
+                          {
+                            type: "debugExecutionNetworkOverhead",
+                            params: ({ event }: { event: any }) =>
+                              event.output.session,
+                          },
+                        ],
                         guard: ({ event }) => !!event.output,
                       },
                       {
@@ -442,6 +474,7 @@ const dmMachine = setup({
                   },
                 },
                 NLInput: {
+                  entry: "resetNetworkOverheadTimer",
                   invoke: {
                     src: "nlInput",
                     input: ({ context }) => ({
@@ -458,10 +491,17 @@ const dmMachine = setup({
                       },
                       {
                         target: "Idle",
-                        actions: {
-                          type: "tdmAssign",
-                          params: ({ event }: { event: any }) => event.output,
-                        },
+                        actions: [
+                          {
+                            type: "debugExecutionNetworkOverhead",
+                            params: ({ event }: { event: any }) =>
+                              event.output.session,
+                          },
+                          {
+                            type: "tdmAssign",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
+                        ],
                         guard: ({ event }) => !!event.output,
                       },
                       {
@@ -472,6 +512,7 @@ const dmMachine = setup({
                   },
                 },
                 Passivity: {
+                  entry: "resetNetworkOverheadTimer",
                   invoke: {
                     src: "passivity",
                     input: ({ context }) => ({
@@ -485,10 +526,17 @@ const dmMachine = setup({
                       },
                       {
                         target: "Idle",
-                        actions: {
-                          type: "tdmAssign",
-                          params: ({ event }: { event: any }) => event.output,
-                        },
+                        actions: [
+                          {
+                            type: "debugExecutionNetworkOverhead",
+                            params: ({ event }: { event: any }) =>
+                              event.output.session,
+                          },
+                          {
+                            type: "tdmAssign",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
+                        ],
                         guard: ({ event }) => !!event.output,
                       },
                       { target: "#DM.Fail" },
@@ -516,9 +564,10 @@ talaSpeechService.subscribe((state) => {
   let metaTS: { view?: string } = Object.values(state.getMeta())[0] || {
     view: undefined,
   };
-  let metaSS: { view?: string } = Object.values(
-    state.context.spstRef.getSnapshot().getMeta(),
-  )[0] || { view: undefined };
+  let metaSS: { view?: string } = (state.context.spstRef &&
+    Object.values(state.context.spstRef.getSnapshot().getMeta())[0]) || {
+    view: undefined,
+  };
   if (metaTS.view === "active") {
     metaView = metaSS.view;
   } else {
@@ -540,7 +589,7 @@ const renderTalaSpeech = async (
 ) => {
   const button = document.createElement("button");
   const baseCSS =
-    "bg-neutral-100 text-slate-900 text-2xl text-center py-2 px-5 rounded-r-2xl flex flex-row h-28 w-64 items-center justify-start gap-4 border border-[2px] border-slate-900";
+    "mb-3 bg-neutral-100 text-slate-900 text-2xl text-center py-2 px-5 rounded-r-2xl flex flex-row h-28 w-64 items-center justify-start gap-4 border border-[2px] border-slate-900";
   button.id = `${element.id}-button`;
   button.className = baseCSS;
   talaSpeechService.subscribe((_state) => {
@@ -549,15 +598,18 @@ const renderTalaSpeech = async (
   element.appendChild(button);
 
   const debugContainer = document.createElement("details");
+  debugContainer.className =
+    "text-neutral-400 marker:text-neutral-400 open:marker:content-['−_Debug:'] marker:content-['+_Debug...']";
   const debugHeader = document.createElement("summary");
-  debugHeader.appendChild(document.createTextNode("debug"));
   debugContainer.appendChild(debugHeader);
   let debugMessage = document.createTextNode("...");
   debugContainer.id = "debugContainer";
   debugContainer.addEventListener(
     "debugMessage",
-    (e: CustomEventInit<string>) => {
-      debugMessage.textContent = e.detail || "";
+    (e: CustomEventInit<number>) => {
+      debugMessage.textContent =
+        `Network overhead for the last request: ${e.detail!.toFixed()} ms` ||
+        "";
     },
   );
 
