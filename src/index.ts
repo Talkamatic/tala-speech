@@ -142,9 +142,6 @@ const dmMachine = setup({
         document.getElementById("debugContainer") &&
         context.executionStartTime
       ) {
-        console.debug(
-          `[time info] execStartTime: ${context.executionStartTime}, tdm took: ${tdmProcessingTimeMs}`,
-        );
         const debugEvent = new CustomEvent("debugMessage", {
           detail: Date.now() - context.executionStartTime - tdmProcessingTimeMs,
         });
@@ -608,8 +605,7 @@ const renderTalaSpeech = async (
     "debugMessage",
     (e: CustomEventInit<number>) => {
       debugMessage.textContent =
-        `Network overhead for the last request: ${e.detail!.toFixed()} ms` ||
-        "";
+        `Network overhead for last request: ${e.detail!.toFixed()} ms` || "";
     },
   );
 
