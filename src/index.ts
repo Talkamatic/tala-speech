@@ -6,6 +6,7 @@ import {
   waitFor,
   AnyActor,
   stateIn,
+  raise,
 } from "xstate";
 import {
   speechstate,
@@ -47,6 +48,7 @@ interface DMContext {
   lastResult?: Hypothesis[];
   lastBargeIn?: boolean;
   avatarName?: string;
+  executionStartTime?: number;
 }
 
 type DMEvent =
@@ -123,8 +125,6 @@ const passivityBody = (sessionObject: any) => ({
   },
 });
 
-const BARGEIN = true;
-
 const dmMachine = setup({
   types: {} as {
     context: DMContext;
@@ -149,6 +149,22 @@ const dmMachine = setup({
         type: "UPDATE_ASR_PARAMETERS",
         value: value,
       });
+    },
+    resetNetworkOverheadTimer: assign(() => ({
+      executionStartTime: Date.now(),
+    })),
+    debugExecutionNetworkOverhead: ({ context }, params: any) => {
+      const tdmProcessingTimeMs =
+        (params.handler_responds - params.handler_received_request) * 1000;
+      if (
+        document.getElementById("debugContainer") &&
+        context.executionStartTime
+      ) {
+        const debugEvent = new CustomEvent("debugMessage", {
+          detail: Date.now() - context.executionStartTime - tdmProcessingTimeMs,
+        });
+        document.getElementById("debugContainer")!.dispatchEvent(debugEvent);
+      }
     },
   },
   actors: {
@@ -221,7 +237,8 @@ const dmMachine = setup({
     },
     GetPages: {
       meta: { view: "initiating" },
-      entry: assign({
+      entry: "resetNetworkOverheadTimer",
+      exit: assign({
         spstRef: ({ spawn, context }) =>
           /** TODO: fix typings */
           {
@@ -259,6 +276,10 @@ const dmMachine = setup({
           {
             target: "BeforePrepare",
             actions: [
+              {
+                type: "debugExecutionNetworkOverhead",
+                params: ({ event }: { event: any }) => event.output.session,
+              },
               {
                 type: "tdmAssign",
                 params: ({ event }: { event: any }) => event.output,
@@ -327,21 +348,19 @@ const dmMachine = setup({
                       value: {
                         utterance: context.tdmState.output.utterance,
                         stream: `${context.tdmState.session.sse_endpoint}/${context.tdmState.session.session_id}`,
-                        bargeIn:
-                          // FIXME: removed for testing!!!
-                          BARGEIN && {
-                            hints: context.tdmState.context.asr_hints,
-                            /** 0 vs null (null = ∞)*/
-                            noInputTimeout:
-                              (context.tdmState.output.expected_passivity
-                                ? context.tdmState.output.expected_passivity *
-                                  1000
-                                : context.tdmState.output.expected_passivity) ??
-                              1000 * 3600 * 24,
-                            completeTimeout:
-                              context.tdmState.output.speech_complete_timeout *
-                              1000,
-                          },
+                        bargeIn: context.tdmState.session.barge_in && {
+                          hints: context.tdmState.context.asr_hints,
+                          /** 0 vs null (null = ∞)*/
+                          noInputTimeout:
+                            (context.tdmState.output.expected_passivity
+                              ? context.tdmState.output.expected_passivity *
+                                1000
+                              : context.tdmState.output.expected_passivity) ??
+                            1000 * 3600 * 24,
+                          completeTimeout:
+                            context.tdmState.output.speech_complete_timeout *
+                            1000,
+                        },
                         // cache:
                         //   "https://tala-tts-service.azurewebsites.net/api/",
                       },
@@ -358,7 +377,8 @@ const dmMachine = setup({
                     SPEAK_COMPLETE: {
                       target: "Ask",
                       reenter: true,
-                      guard: () => !BARGEIN,
+                      guard: ({ context }) =>
+                        !context.tdmState.session.barge_in,
                     },
                     LISTEN_COMPLETE: {
                       target: "Prompt",
@@ -398,21 +418,23 @@ const dmMachine = setup({
                         return false;
                       },
                     },
-                    // {
-                    //   /** if passivity is 0 don't listen */
-                    //   target: "Prompt",
-                    //   actions: raise({ type: "ASR_NOINPUT" }),
-                    //   reenter: true,
-                    //   guard: ({ context }) => {
-                    //     if (context.tdmState.output) {
-                    //       return (
-                    //         context.tdmState.output.expected_passivity === 0
-                    //       );
-                    //     }
-                    //     return false;
-                    //   },
-                    // },
-                    { target: "Prompt" },
+                    {
+                      /** if passivity is 0 don't listen */
+                      target: "Prompt",
+                      actions: [raise({ type: "ASR_NOINPUT" })],
+                      reenter: true,
+                      guard: ({ context }) => {
+                        if (context.tdmState.output) {
+                          return (
+                            context.tdmState.output.expected_passivity === 0
+                          );
+                        }
+                        return false;
+                      },
+                    },
+                    {
+                      target: "Ask",
+                    },
                   ],
                 },
                 Ask: {
@@ -444,6 +466,7 @@ const dmMachine = setup({
             },
             TDMCalls: {
               initial: "Start",
+              entry: "resetNetworkOverheadTimer",
               states: {
                 Start: {
                   entry: () => console.debug("[DM→TDM] sendSegment"),
@@ -457,14 +480,23 @@ const dmMachine = setup({
                     onDone: [
                       {
                         target: "Idle",
-                        guard: ({ event }) => !!event.output,
+                        guard: ({ event }) => !!event.output.no_content,
+                      },
+                      {
+                        target: "Idle",
                         actions: [
                           {
                             type: "tdmAssign",
                             params: ({ event }: { event: any }) => event.output,
                           },
+                          {
+                            type: "debugExecutionNetworkOverhead",
+                            params: ({ event }: { event: any }) =>
+                              event.output.session,
+                          },
                           { type: "speechstate.updateAsrParams" },
                         ],
+                        guard: ({ event }) => !!event.output,
                       },
                       {
                         target: "#DM.Fail",
@@ -491,7 +523,10 @@ const dmMachine = setup({
                   },
                 },
                 NLInput: {
-                  entry: () => console.debug("[DM→TDM] nlInput"),
+                  entry: [
+                    () => console.debug("[DM→TDM] nlInput"),
+                    "resetNetworkOverheadTimer",
+                  ],
                   invoke: {
                     src: "nlInput",
                     input: ({ context }) => ({
@@ -509,10 +544,17 @@ const dmMachine = setup({
                       },
                       {
                         target: "Idle",
-                        actions: {
-                          type: "tdmAssign",
-                          params: ({ event }: { event: any }) => event.output,
-                        },
+                        actions: [
+                          {
+                            type: "debugExecutionNetworkOverhead",
+                            params: ({ event }: { event: any }) =>
+                              event.output.session,
+                          },
+                          {
+                            type: "tdmAssign",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
+                        ],
                         guard: ({ event }) => !!event.output,
                       },
                       {
@@ -523,7 +565,10 @@ const dmMachine = setup({
                   },
                 },
                 Passivity: {
-                  entry: () => console.debug("[DM→TDM] passivity"),
+                  entry: [
+                    () => console.debug("[DM→TDM] passivity"),
+                    "resetNetworkOverheadTimer",
+                  ],
                   invoke: {
                     src: "passivity",
                     input: ({ context }) => ({
@@ -538,11 +583,16 @@ const dmMachine = setup({
                       {
                         target: "Idle",
                         actions: [
+                          { type: "speechstate.updateAsrParams" },
+                          {
+                            type: "debugExecutionNetworkOverhead",
+                            params: ({ event }: { event: any }) =>
+                              event.output.session,
+                          },
                           {
                             type: "tdmAssign",
                             params: ({ event }: { event: any }) => event.output,
                           },
-                          { type: "speechstate.updateAsrParams" },
                         ],
                         guard: ({ event }) => !!event.output,
                       },
@@ -612,9 +662,35 @@ const renderTalaSpeech = async (
 ) => {
   const button = document.createElement("button");
   const baseCSS =
-    "bg-neutral-100 text-slate-900 text-2xl text-center py-2 px-5 rounded-r-2xl flex flex-row h-28 w-64 items-center justify-start gap-4 border border-[2px] border-slate-900";
+    "mb-3 bg-neutral-100 text-slate-900 text-2xl text-center py-2 px-5 rounded-r-2xl flex flex-row h-28 w-64 items-center justify-start gap-4 border border-[2px] border-slate-900";
   button.id = `${element.id}-button`;
   button.className = baseCSS;
+  button.addEventListener(
+    "click",
+    () => {
+      talaSpeechService.send({ type: "START" });
+      talaSpeechService.send({ type: "CONTROL" });
+    },
+    false,
+  );
+
+  const debugContainer = document.createElement("details");
+  debugContainer.className =
+    "text-neutral-400 marker:text-neutral-400 open:marker:content-['−_Debug:'] marker:content-['+_Debug...']";
+  const debugHeader = document.createElement("summary");
+  debugContainer.appendChild(debugHeader);
+  let debugMessage = document.createTextNode("...");
+  debugContainer.id = "debugContainer";
+  debugContainer.addEventListener(
+    "debugMessage",
+    (e: CustomEventInit<number>) => {
+      debugMessage.textContent =
+        `Network overhead for last request: ${e.detail!.toFixed()} ms` || "";
+    },
+  );
+  debugContainer.appendChild(debugMessage);
+  element.appendChild(button);
+  element.appendChild(debugContainer);
 
   talaSpeechService.send({ type: "SETUP", value: settings });
   await waitFor(
@@ -629,20 +705,11 @@ const renderTalaSpeech = async (
     },
   );
   talaSpeechService.send({ type: "TURN_PAGE", value: page });
-  button.addEventListener(
-    "click",
-    () => {
-      talaSpeechService.send({ type: "START" });
-      talaSpeechService.send({ type: "CONTROL" });
-    },
-    false,
-  );
   talaSpeechService.send({ type: "PREPARE" });
   await waitFor(talaSpeechService, (snapshot) => !!snapshot.context.spstRef);
   talaSpeechService.getSnapshot().context.spstRef.subscribe(() => {
     button.className = metaToTailwind(window.TalaSpeechUIState, baseCSS);
   });
-  element.appendChild(button);
 };
 
 window.TalaSpeechRenderer = {
