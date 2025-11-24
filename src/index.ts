@@ -154,12 +154,14 @@ const dmMachine = setup({
       executionStartTime: Date.now(),
     })),
     debugExecutionNetworkOverhead: ({ context }, params: any) => {
-      const tdmProcessingTimeMs =
-        (params.handler_responds - params.handler_received_request) * 1000;
       if (
         document.getElementById("debugContainer") &&
-        context.executionStartTime
+        context.executionStartTime &&
+        params.handler_responds &&
+        params.handler_received_request
       ) {
+        const tdmProcessingTimeMs =
+          (params.handler_responds - params.handler_received_request) * 1000;
         const debugEvent = new CustomEvent("debugMessage", {
           detail: Date.now() - context.executionStartTime - tdmProcessingTimeMs,
         });
