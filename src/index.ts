@@ -438,6 +438,7 @@ const dmMachine = setup({
                       target: "Ask",
                     },
                   ],
+                  onError: "#DM.Fail",
                 },
                 Ask: {
                   entry: ({ context }) =>
@@ -556,6 +557,7 @@ const dmMachine = setup({
                             type: "tdmAssign",
                             params: ({ event }: { event: any }) => event.output,
                           },
+                          { type: "speechstate.updateAsrParams" },
                         ],
                         guard: ({ event }) => !!event.output,
                       },
