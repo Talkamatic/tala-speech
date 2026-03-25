@@ -1,12 +1,12 @@
 import {
   assign,
-  raise,
   createActor,
   setup,
   fromPromise,
   waitFor,
   AnyActor,
   stateIn,
+  raise,
 } from "xstate";
 import {
   speechstate,
@@ -46,6 +46,7 @@ interface DMContext {
   segment?: string;
   tdmState?: any;
   lastResult?: Hypothesis[];
+  lastBargeIn?: boolean;
   avatarName?: string;
   executionStartTime?: number;
 }
@@ -102,6 +103,7 @@ const nlInputBody = (
   ddd: string,
   moves: string[],
   hypotheses: Hypothesis[],
+  bargeIn: boolean,
 ) => ({
   session: {
     ...sessionObject,
@@ -113,6 +115,7 @@ const nlInputBody = (
       modality: "speech",
       hypotheses: hypotheses,
     },
+    barge_in: bargeIn,
   },
 });
 const passivityBody = (sessionObject: any) => ({
@@ -132,16 +135,33 @@ const dmMachine = setup({
       console.debug("[tdmState]", params);
       return { tdmState: params };
     }),
+    "speechstate.updateAsrParams": ({ context }) => {
+      const value = {
+        noInputTimeout:
+          (context.tdmState.output.expected_passivity
+            ? context.tdmState.output.expected_passivity * 1000
+            : context.tdmState.output.expected_passivity) ?? 1000 * 3600 * 24,
+        hints: context.tdmState.context.asr_hints,
+        completeTimeout: context.tdmState.output.speech_complete_timeout * 1000,
+      };
+      console.debug("[DM] UPDATE_ASR_PARAMETERS", value);
+      context.spstRef.send({
+        type: "UPDATE_ASR_PARAMETERS",
+        value: value,
+      });
+    },
     resetNetworkOverheadTimer: assign(() => ({
       executionStartTime: Date.now(),
     })),
     debugExecutionNetworkOverhead: ({ context }, params: any) => {
-      const tdmProcessingTimeMs =
-        (params.handler_responds - params.handler_received_request) * 1000;
       if (
         document.getElementById("debugContainer") &&
-        context.executionStartTime
+        context.executionStartTime &&
+        params.handler_responds &&
+        params.handler_received_request
       ) {
+        const tdmProcessingTimeMs =
+          (params.handler_responds - params.handler_received_request) * 1000;
         const debugEvent = new CustomEvent("debugMessage", {
           detail: Date.now() - context.executionStartTime - tdmProcessingTimeMs,
         });
@@ -176,6 +196,7 @@ const dmMachine = setup({
         activeDDD: string;
         moves: string[];
         lastResult: Hypothesis[];
+        bargeIn: boolean;
       }
     >(({ input }) =>
       tdmRequest(
@@ -185,6 +206,7 @@ const dmMachine = setup({
           input.activeDDD,
           input.moves,
           input.lastResult,
+          input.bargeIn,
         ),
       ),
     ),
@@ -303,6 +325,9 @@ const dmMachine = setup({
       meta: { view: "active" },
       initial: "Conversation",
       on: {
+        CONTROL: {
+          actions: ({ context }) => context.spstRef.send({ type: "CONTROL" }),
+        },
         STOP: {
           target: "#DM.Stopped",
           actions: ({ context }) =>
@@ -324,16 +349,25 @@ const dmMachine = setup({
                       type: "SPEAK",
                       value: {
                         utterance: context.tdmState.output.utterance,
-                        stream: `${context.tdmState.session.sse_endpoint || "https://tala-event-sse.azurewebsites.net/event-sse"}/${context.tdmState.session.session_id}`,
-                        cache:
-                          "https://tala-tts-service.azurewebsites.net/api/",
+                        stream: `${context.tdmState.session.sse_endpoint}/${context.tdmState.session.session_id}`,
+                        bargeIn: context.tdmState.session.barge_in && {
+                          hints: context.tdmState.context.asr_hints,
+                          /** 0 vs null (null = ∞)*/
+                          noInputTimeout:
+                            (context.tdmState.output.expected_passivity
+                              ? context.tdmState.output.expected_passivity *
+                                1000
+                              : context.tdmState.output.expected_passivity) ??
+                            1000 * 3600 * 24,
+                          completeTimeout:
+                            context.tdmState.output.speech_complete_timeout *
+                            1000,
+                        },
+                        // cache:
+                        //   "https://tala-tts-service.azurewebsites.net/api/",
                       },
                     }),
                   on: {
-                    CONTROL: {
-                      actions: ({ context }) =>
-                        context.spstRef.send({ type: "CONTROL" }),
-                    },
                     STREAMING_SET_PERSONA: {
                       actions: [
                         () => console.debug("[SpSt→DM] STREAMING_SET_PERSONA"),
@@ -342,7 +376,16 @@ const dmMachine = setup({
                         }),
                       ],
                     },
-                    SPEAK_COMPLETE: "WaitForTDM",
+                    SPEAK_COMPLETE: {
+                      target: "Ask",
+                      reenter: true,
+                      guard: ({ context }) =>
+                        !context.tdmState.session.barge_in,
+                    },
+                    LISTEN_COMPLETE: {
+                      target: "Prompt",
+                      reenter: true,
+                    },
                   },
                 },
                 WaitForTDM: {
@@ -395,6 +438,7 @@ const dmMachine = setup({
                       target: "Ask",
                     },
                   ],
+                  onError: "#DM.Fail",
                 },
                 Ask: {
                   entry: ({ context }) =>
@@ -417,10 +461,7 @@ const dmMachine = setup({
                     LISTEN_COMPLETE: {
                       actions: () => console.debug("[SpSt→DM] LISTEN_COMPLETE"),
                       target: "Prompt",
-                    },
-                    CONTROL: {
-                      actions: ({ context }) =>
-                        context.spstRef.send({ type: "CONTROL" }),
+                      reenter: true,
                     },
                   },
                 },
@@ -431,6 +472,7 @@ const dmMachine = setup({
               entry: "resetNetworkOverheadTimer",
               states: {
                 Start: {
+                  entry: () => console.debug("[DM→TDM] sendSegment"),
                   invoke: {
                     src: "sendSegment",
                     input: ({ context }) => ({
@@ -455,6 +497,7 @@ const dmMachine = setup({
                             params: ({ event }: { event: any }) =>
                               event.output.session,
                           },
+                          { type: "speechstate.updateAsrParams" },
                         ],
                         guard: ({ event }) => !!event.output,
                       },
@@ -473,6 +516,7 @@ const dmMachine = setup({
                       actions: [
                         assign({
                           lastResult: ({ event }) => event.value,
+                          lastBargeIn: ({ event }) => event.bargeIn,
                         }),
                       ],
                     },
@@ -482,7 +526,10 @@ const dmMachine = setup({
                   },
                 },
                 NLInput: {
-                  entry: "resetNetworkOverheadTimer",
+                  entry: [
+                    () => console.debug("[DM→TDM] nlInput"),
+                    "resetNetworkOverheadTimer",
+                  ],
                   invoke: {
                     src: "nlInput",
                     input: ({ context }) => ({
@@ -491,6 +538,7 @@ const dmMachine = setup({
                       activeDDD: context.tdmState.context.active_ddd,
                       moves: context.tdmState.output.moves,
                       lastResult: context.lastResult!,
+                      bargeIn: context.lastBargeIn || false,
                     }),
                     onDone: [
                       {
@@ -509,6 +557,7 @@ const dmMachine = setup({
                             type: "tdmAssign",
                             params: ({ event }: { event: any }) => event.output,
                           },
+                          { type: "speechstate.updateAsrParams" },
                         ],
                         guard: ({ event }) => !!event.output,
                       },
@@ -520,7 +569,10 @@ const dmMachine = setup({
                   },
                 },
                 Passivity: {
-                  entry: "resetNetworkOverheadTimer",
+                  entry: [
+                    () => console.debug("[DM→TDM] passivity"),
+                    "resetNetworkOverheadTimer",
+                  ],
                   invoke: {
                     src: "passivity",
                     input: ({ context }) => ({
@@ -535,6 +587,7 @@ const dmMachine = setup({
                       {
                         target: "Idle",
                         actions: [
+                          { type: "speechstate.updateAsrParams" },
                           {
                             type: "debugExecutionNetworkOverhead",
                             params: ({ event }: { event: any }) =>
@@ -567,24 +620,40 @@ const talaSpeechService = createActor(dmMachine);
 talaSpeechService.start();
 
 window.TalaSpeechUIState = "initiating";
-talaSpeechService.subscribe((state) => {
-  let metaView: string | undefined;
-  let metaTS: { view?: string } = Object.values(state.getMeta())[0] || {
-    view: undefined,
-  };
-  let metaSS: { view?: string } = (state.context.spstRef &&
-    Object.values(state.context.spstRef.getSnapshot().getMeta())[0]) || {
-    view: undefined,
-  };
-  if (metaTS.view === "active") {
-    metaView = metaSS.view;
-  } else {
-    metaView = metaTS.view;
-  }
-  window.TalaSpeechUIState !== metaView &&
-    console.debug("[TalaSpeechUIState]", metaView);
-  window.TalaSpeechUIState = metaView;
-});
+
+const speechStateSubscription = async () => {
+  await waitFor(talaSpeechService, (snapshot) => !!snapshot.context.spstRef);
+  return talaSpeechService
+    .getSnapshot()
+    .context.spstRef.subscribe((state: any) => {
+      let metaView: string | undefined;
+      let metaTS: { view?: string } = Object.values(
+        talaSpeechService.getSnapshot().getMeta(),
+      )[0] || {
+        view: undefined,
+      };
+      let metaSS: { view?: string } = Object.values(state.getMeta())[0] || {
+        view: undefined,
+      };
+      if (metaTS.view === "active") {
+        metaView = metaSS.view;
+      } else {
+        metaView = metaTS.view;
+      }
+      window.TalaSpeechUIState !== metaView &&
+        console.debug("[TalaSpeechUIState]", metaView);
+      window.TalaSpeechUIState = metaView;
+      console.debug("[TalaSpeechState]", talaSpeechService.getSnapshot().value);
+      console.debug("[SpeechState]", state.value);
+      // console.debug(
+      //   "[SpeechState.ASR]",
+      //   state.context.asrRef && state.context.asrRef.getSnapshot().context,
+      // );
+    });
+};
+
+speechStateSubscription();
+
 window.TalaSpeech = talaSpeechService;
 
 const getDialogueJson = async (url: string) =>
@@ -600,10 +669,14 @@ const renderTalaSpeech = async (
     "mb-3 bg-neutral-100 text-slate-900 text-2xl text-center py-2 px-5 rounded-r-2xl flex flex-row h-28 w-64 items-center justify-start gap-4 border border-[2px] border-slate-900";
   button.id = `${element.id}-button`;
   button.className = baseCSS;
-  talaSpeechService.subscribe((_state) => {
-    button.className = metaToTailwind(window.TalaSpeechUIState, baseCSS);
-  });
-  element.appendChild(button);
+  button.addEventListener(
+    "click",
+    () => {
+      talaSpeechService.send({ type: "START" });
+      talaSpeechService.send({ type: "CONTROL" });
+    },
+    false,
+  );
 
   const debugContainer = document.createElement("details");
   debugContainer.className =
@@ -619,8 +692,8 @@ const renderTalaSpeech = async (
         `Network overhead for last request: ${e.detail!.toFixed()} ms` || "";
     },
   );
-
   debugContainer.appendChild(debugMessage);
+  element.appendChild(button);
   element.appendChild(debugContainer);
 
   talaSpeechService.send({ type: "SETUP", value: settings });
@@ -636,15 +709,11 @@ const renderTalaSpeech = async (
     },
   );
   talaSpeechService.send({ type: "TURN_PAGE", value: page });
-  button.addEventListener(
-    "click",
-    () => {
-      talaSpeechService.send({ type: "START" });
-      talaSpeechService.send({ type: "CONTROL" });
-    },
-    false,
-  );
   talaSpeechService.send({ type: "PREPARE" });
+  await waitFor(talaSpeechService, (snapshot) => !!snapshot.context.spstRef);
+  talaSpeechService.getSnapshot().context.spstRef.subscribe(() => {
+    button.className = metaToTailwind(window.TalaSpeechUIState, baseCSS);
+  });
 };
 
 window.TalaSpeechRenderer = {

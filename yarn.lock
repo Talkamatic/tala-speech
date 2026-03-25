@@ -2880,15 +2880,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"speechstate@npm:^2.15.0":
-  version: 2.15.0
-  resolution: "speechstate@npm:2.15.0"
+"speechstate@npm:^2.16.0":
+  version: 2.16.0
+  resolution: "speechstate@npm:2.16.0"
   dependencies:
     microsoft-cognitiveservices-speech-sdk: ^1.43.1
     reconnecting-eventsource: ^1.6.4
     web-speech-cognitive-services: ^8.1.1
-    xstate: ^5.17.4
-  checksum: e7182fe5da79a65af4b114e85f0824262f70357eafb7b378fd473a0f0bf19ade5423d5a58ca2efee45e3b7bc53a543b1f79737b8e907d37fdece7a91e0fb9a5e
+    xstate: ^5.21.0
+  checksum: f4a8db62f8b6bef8497e82d480bab2efc94d9ff77d1c59cca4207059dbef796c65ba3cd7df6d0b2042d15f70619a6f1c648a62fbf858b49deebd2af043f6fc45
   languageName: node
   linkType: hard
 
@@ -3045,9 +3045,9 @@ __metadata:
     "@tailwindcss/cli": ^4.1.4
     esbuild: ^0.25.3
     npm-run-all: ^4.1.5
-    speechstate: ^2.15.0
+    speechstate: ^2.16.0
     tailwindcss: ^4.1.4
-    typescript: ^5.3.3
+    typescript: ^5.7.3
     typescript-language-server: ^4.3.1
   languageName: unknown
   linkType: soft
@@ -3151,23 +3151,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.3.3":
-  version: 5.6.3
-  resolution: "typescript@npm:5.6.3"
+"typescript@npm:^5.7.3":
+  version: 5.7.3
+  resolution: "typescript@npm:5.7.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: ba302f8822777ebefb28b554105f3e074466b671e7444ec6b75dadc008a62f46f373d9e57ceced1c433756d06c8b7dc569a7eefdf3a9573122a49205ff99021a
+  checksum: 6c38b1e989918e576f0307e6ee013522ea480dfce5f3ca85c9b2d8adb1edeffd37f4f30cd68de0c38a44563d12ba922bdb7e36aa2dac9c51de5d561e6e9a2e9c
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^5.3.3#~builtin<compat/typescript>":
-  version: 5.6.3
-  resolution: "typescript@patch:typescript@npm%3A5.6.3#~builtin<compat/typescript>::version=5.6.3&hash=29ae49"
+"typescript@patch:typescript@^5.7.3#~builtin<compat/typescript>":
+  version: 5.7.3
+  resolution: "typescript@patch:typescript@npm%3A5.7.3#~builtin<compat/typescript>::version=5.7.3&hash=29ae49"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: ade87bce2363ee963eed0e4ca8a312ea02c81873ebd53609bc3f6dc0a57f6e61ad7e3fb8cbb7f7ab8b5081cbee801b023f7c4823ee70b1c447eae050e6c7622b
+  checksum: 633cd749d6cd7bc842c6b6245847173bba99742a60776fae3c0fbcc0d1733cd51a733995e5f4dadd8afb0e64e57d3c7dbbeae953a072ee303940eca69e22f311
   languageName: node
   linkType: hard
 
@@ -3412,10 +3412,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"xstate@npm:^5.17.4":
-  version: 5.18.2
-  resolution: "xstate@npm:5.18.2"
-  checksum: cf131c38986bcb27ebd9467615e0a7b68ee1334fab2aa092917cae6041e604e5ef93ada41fb289094e7533513b3e5663f3595295d9a9b39251027382d6594cc3
+"xstate@npm:^5.21.0":
+  version: 5.21.0
+  resolution: "xstate@npm:5.21.0"
+  checksum: 01bd7f9a8ac2fcff846af3255203f656543f9931d9114d4f6533289ff7a3f7cf2645cff4f759d79225b675d8add4f0696f13274b95be15f696b61e5f27559443
   languageName: node
   linkType: hard
 

@@ -1,7 +1,7 @@
 {
   "name": "tala-speech",
   "type": "module",
-  "version": "2.18.0",
+  "version": "2.19.0",
   "license": "GPL-3.0",
   "scripts": {
     "compile": "tsc --outDir dist/lib",
@@ -19,10 +19,10 @@
     "esbuild": "^0.25.3",
     "npm-run-all": "^4.1.5",
     "tailwindcss": "^4.1.4",
-    "typescript": "^5.3.3",
+    "typescript": "^5.7.3",
     "typescript-language-server": "^4.3.1"
   },
   "dependencies": {
-    "speechstate": "^2.15.0"
+    "speechstate": "^2.16.0"
   }
 }
