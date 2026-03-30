@@ -941,6 +941,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"daisyui@npm:latest":
+  version: 5.5.19
+  resolution: "daisyui@npm:5.5.19"
+  checksum: 00b0de053e710aef8b426fb078be69f424e77c156df8b6ba31a38341d0651794173baeb94a0773dd928ec59c193d8a0329b260241b6f1422e97061199edbd9ad
+  languageName: node
+  linkType: hard
+
 "data-view-buffer@npm:^1.0.2":
   version: 1.0.2
   resolution: "data-view-buffer@npm:1.0.2"
@@ -3043,6 +3050,7 @@ __metadata:
   dependencies:
     "@statelyai/inspect": ^0.4.0
     "@tailwindcss/cli": ^4.1.4
+    daisyui: latest
     esbuild: ^0.25.3
     npm-run-all: ^4.1.5
     speechstate: ^2.16.0
