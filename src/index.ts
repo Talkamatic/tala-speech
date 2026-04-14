@@ -119,10 +119,10 @@ const dmMachine = setup({
       ) {
         const tdmProcessingTimeMs =
           (params.handler_responds - params.handler_received_request) * 1000;
-        const debugEvent = new CustomEvent("debugMessage", {
+        const debugEvent = new CustomEvent("ts.DebugMessage", {
           detail: Date.now() - context.executionStartTime - tdmProcessingTimeMs,
         });
-        document.getElementById("debugContainer")!.dispatchEvent(debugEvent);
+        document.dispatchEvent(debugEvent);
       }
     },
   },

@@ -596,6 +596,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/trusted-types@npm:^2.0.2":
+  version: 2.0.7
+  resolution: "@types/trusted-types@npm:2.0.7"
+  checksum: 8e4202766a65877efcf5d5a41b7dd458480b36195e580a3b1085ad21e948bc417d55d6f8af1fd2a7ad008015d4117d5fdfe432731157da3c68678487174e4ba3
+  languageName: node
+  linkType: hard
+
 "@types/webrtc@npm:^0.0.37":
   version: 0.0.37
   resolution: "@types/webrtc@npm:0.0.37"
@@ -2067,6 +2074,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lit-html@npm:^3.3.2":
+  version: 3.3.2
+  resolution: "lit-html@npm:3.3.2"
+  dependencies:
+    "@types/trusted-types": ^2.0.2
+  checksum: 7fe23502ca77e1f29a421507ee4f104a53226d540a11d0f1b16fa4868c962c52b9595064d28bfbc4bd910adf50b3b01d63f54ddb19a1342d572d1adf1b2ffae2
+  languageName: node
+  linkType: hard
+
 "load-json-file@npm:^4.0.0":
   version: 4.0.0
   resolution: "load-json-file@npm:4.0.0"
@@ -3052,6 +3068,7 @@ __metadata:
     "@tailwindcss/cli": ^4.1.4
     daisyui: latest
     esbuild: ^0.25.3
+    lit-html: ^3.3.2
     npm-run-all: ^4.1.5
     speechstate: ^2.16.0
     tailwindcss: ^4.1.4
