@@ -19,24 +19,56 @@ export interface TalaSpeechTemplate {
   };
 }
 
+interface TDMVisualInformation {
+  [key: string]: unknown;
+  attribute?: string;
+  value?: string;
+}
+
+interface TDMVisualOutput {
+  [key: string]: unknown;
+  semantic_expression?: string;
+  visual_information?: TDMVisualInformation[];
+}
+
 interface TDMState {
   [key: string]: unknown;
   output?: {
     [key: string]: unknown;
-    visual_output?: {
-      [key: string]: unknown;
-      image?: string;
-    };
+    moves?: string[];
+    visual_output?: TDMVisualOutput[];
   };
 }
 
 export const createTalaSpeechViewState = (
   uiState: string | undefined,
   tdmState: TDMState | undefined,
-): TalaSpeechViewState => ({
-  uiState,
-  imageUrl: tdmState?.output?.visual_output?.image,
-});
+): TalaSpeechViewState => {
+  const visualOutputs = tdmState?.output?.visual_output ?? [];
+  const moves = tdmState?.output?.moves ?? [];
+  const matchingOutput = visualOutputs.find(
+    ({ semantic_expression }) =>
+      semantic_expression !== undefined && moves.includes(semantic_expression),
+  );
+  const relevantOutputs = matchingOutput
+    ? [
+        matchingOutput,
+        ...visualOutputs.filter((visualOutput) => visualOutput !== matchingOutput),
+      ]
+    : visualOutputs;
+  const imageUrl = relevantOutputs
+    .map((visualOutput) =>
+      visualOutput.visual_information?.find(
+        ({ attribute }) => attribute === "image",
+      )?.value,
+    )
+    .find((value) => value !== undefined);
+
+  return {
+    uiState,
+    imageUrl,
+  };
+};
 
 export const defaultTalaSpeechTemplate: TalaSpeechTemplate = {
   mount: (element, actions) => {
