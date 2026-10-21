@@ -114,7 +114,7 @@ export const mountTalaSpeechTemplate = (
   actions: TalaSpeechTemplateActions,
 ) => {
   const container = document.createElement("div");
-  container.className = "tala-speech-container p-2";
+  container.className = "tala-speech-container";
   element.appendChild(container);
   return template.mount(container, actions);
 };
