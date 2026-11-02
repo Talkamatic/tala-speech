@@ -26,6 +26,11 @@ export type {
   TalaSpeechTemplateActions,
   TalaSpeechViewState,
 } from "./talaSpeechView";
+import {
+  DEFERRED_NO_INPUT_TIMEOUT_MS,
+  PassivityCoordinator,
+  updateAsrParameters,
+} from "./passivity";
 
 import "./index.css";
 
@@ -49,6 +54,8 @@ interface TDMSettings extends Settings {
   deviceID: string;
   sessionObjectAdditions?: any;
   endpoint: string;
+  /** Minimum no-input wait after speaking an instruction request, in seconds. Defaults to 30. */
+  instructionNoInputTimeout?: number;
 }
 
 interface DMContext {
@@ -60,6 +67,7 @@ interface DMContext {
   lastBargeIn?: boolean;
   avatarName?: string;
   executionStartTime?: number;
+  passivityCoordinator?: PassivityCoordinator;
 }
 
 type DMEvent =
@@ -146,21 +154,27 @@ const dmMachine = setup({
       console.debug("[tdmState]", params);
       return { tdmState: params };
     }),
-    "speechstate.updateAsrParams": ({ context }) => {
-      const value = {
-        noInputTimeout:
-          (context.tdmState.output.expected_passivity
-            ? context.tdmState.output.expected_passivity * 1000
-            : context.tdmState.output.expected_passivity) ?? 1000 * 3600 * 24,
-        hints: context.tdmState.context.asr_hints,
-        completeTimeout: context.tdmState.output.speech_complete_timeout * 1000,
-      };
+    "speechstate.updateAsrParams": ({ context }, response: any) => {
+      const value = updateAsrParameters(
+        context.spstRef,
+        response,
+        context.tdmSettings?.instructionNoInputTimeout,
+      );
       console.debug("[DM] UPDATE_ASR_PARAMETERS", value);
-      context.spstRef.send({
-        type: "UPDATE_ASR_PARAMETERS",
-        value: value,
-      });
     },
+    "passivity.requestStarted": ({ context }) =>
+      context.passivityCoordinator?.requestStarted(),
+    "passivity.responseArrived": ({ context }, response: any) =>
+      context.passivityCoordinator?.responseArrived(response),
+    "passivity.responseUnchanged": ({ context }) =>
+      context.passivityCoordinator?.responseUnchanged(),
+    "passivity.speechComplete": ({ context }) =>
+      context.passivityCoordinator?.speechComplete(),
+    "passivity.listenerStarted": ({ context }) =>
+      context.passivityCoordinator?.listenerStarted(),
+    "passivity.userRecognized": ({ context }) =>
+      context.passivityCoordinator?.userRecognized(),
+    "passivity.cancel": ({ context }) => context.passivityCoordinator?.cancel(),
     resetNetworkOverheadTimer: assign(() => ({
       executionStartTime: Date.now(),
     })),
@@ -244,7 +258,10 @@ const dmMachine = setup({
       on: {
         SETUP: {
           target: "GetPages",
-          actions: assign({ tdmSettings: ({ event }) => event.value }),
+          actions: assign(({ event }) => ({
+            tdmSettings: event.value,
+            passivityCoordinator: new PassivityCoordinator(),
+          })),
         },
       },
     },
@@ -341,10 +358,13 @@ const dmMachine = setup({
         },
         STOP: {
           target: "#DM.Stopped",
-          actions: ({ context }) =>
-            context.spstRef.send({
-              type: "STOP",
-            }),
+          actions: [
+            "passivity.cancel",
+            ({ context }) =>
+              context.spstRef.send({
+                type: "STOP",
+              }),
+          ],
         },
       },
       states: {
@@ -355,30 +375,33 @@ const dmMachine = setup({
               initial: "Prompt",
               states: {
                 Prompt: {
-                  entry: ({ context }) =>
-                    context.spstRef.send({
-                      type: "SPEAK",
-                      value: {
-                        utterance: context.tdmState.output.utterance,
-                        stream: `${context.tdmState.session.sse_endpoint}/${context.tdmState.session.session_id}`,
-                        bargeIn: context.tdmState.session.barge_in && {
-                          hints: context.tdmState.context.asr_hints,
-                          /** 0 vs null (null = ∞)*/
-                          noInputTimeout:
-                            (context.tdmState.output.expected_passivity
-                              ? context.tdmState.output.expected_passivity *
-                                1000
-                              : context.tdmState.output.expected_passivity) ??
-                            1000 * 3600 * 24,
-                          completeTimeout:
-                            context.tdmState.output.speech_complete_timeout *
-                            1000,
+                  entry: [
+                    ({ context }) =>
+                      context.passivityCoordinator?.beginPrompt(
+                        context.tdmState,
+                        context.spstRef,
+                        context.tdmSettings!.instructionNoInputTimeout,
+                      ),
+                    ({ context }) =>
+                      context.spstRef.send({
+                        type: "SPEAK",
+                        value: {
+                          utterance: context.tdmState.output.utterance,
+                          stream: `${context.tdmState.session.sse_endpoint}/${context.tdmState.session.session_id}`,
+                          bargeIn: context.tdmState.session.barge_in && {
+                            hints: context.tdmState.context.asr_hints,
+                            noInputTimeout: DEFERRED_NO_INPUT_TIMEOUT_MS,
+                            completeTimeout:
+                              context.tdmState.output.speech_complete_timeout *
+                              1000,
+                          },
+                          // cache:
+                          //   "https://tala-tts-service.azurewebsites.net/api/",
                         },
-                        // cache:
-                        //   "https://tala-tts-service.azurewebsites.net/api/",
-                      },
-                    }),
+                      }),
+                  ],
                   on: {
+                    ASR_STARTED: { actions: "passivity.listenerStarted" },
                     STREAMING_SET_PERSONA: {
                       actions: [
                         () => console.debug("[SpSt→DM] STREAMING_SET_PERSONA"),
@@ -387,12 +410,16 @@ const dmMachine = setup({
                         }),
                       ],
                     },
-                    SPEAK_COMPLETE: {
-                      target: "Ask",
-                      reenter: true,
-                      guard: ({ context }) =>
-                        !context.tdmState.session.barge_in,
-                    },
+                    SPEAK_COMPLETE: [
+                      {
+                        target: "Ask",
+                        reenter: true,
+                        guard: ({ context }) =>
+                          !context.tdmState.session.barge_in,
+                        actions: "passivity.speechComplete",
+                      },
+                      { actions: "passivity.speechComplete" },
+                    ],
                     LISTEN_COMPLETE: {
                       target: "Prompt",
                       reenter: true,
@@ -456,12 +483,7 @@ const dmMachine = setup({
                     context.spstRef.send({
                       type: "LISTEN",
                       value: {
-                        /** 0 vs null (null = ∞)*/
-                        noInputTimeout:
-                          (context.tdmState.output.expected_passivity
-                            ? context.tdmState.output.expected_passivity * 1000
-                            : context.tdmState.output.expected_passivity) ??
-                          1000 * 3600 * 24,
+                        noInputTimeout: DEFERRED_NO_INPUT_TIMEOUT_MS,
                         hints: (context.tdmState.context || {}).asr_hints,
                         completeTimeout:
                           (context.tdmState.output || {})
@@ -469,6 +491,7 @@ const dmMachine = setup({
                       },
                     }),
                   on: {
+                    ASR_STARTED: { actions: "passivity.listenerStarted" },
                     LISTEN_COMPLETE: {
                       actions: () => console.debug("[SpSt→DM] LISTEN_COMPLETE"),
                       target: "Prompt",
@@ -483,7 +506,10 @@ const dmMachine = setup({
               entry: "resetNetworkOverheadTimer",
               states: {
                 Start: {
-                  entry: () => console.debug("[DM→TDM] sendSegment"),
+                  entry: [
+                    () => console.debug("[DM→TDM] sendSegment"),
+                    "passivity.requestStarted",
+                  ],
                   invoke: {
                     src: "sendSegment",
                     input: ({ context }) => ({
@@ -495,6 +521,7 @@ const dmMachine = setup({
                       {
                         target: "Idle",
                         guard: ({ event }) => !!event.output.no_content,
+                        actions: "passivity.responseUnchanged",
                       },
                       {
                         target: "Idle",
@@ -504,11 +531,18 @@ const dmMachine = setup({
                             params: ({ event }: { event: any }) => event.output,
                           },
                           {
+                            type: "passivity.responseArrived",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
+                          {
                             type: "debugExecutionNetworkOverhead",
                             params: ({ event }: { event: any }) =>
                               event.output.session,
                           },
-                          { type: "speechstate.updateAsrParams" },
+                          {
+                            type: "speechstate.updateAsrParams",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
                         ],
                         guard: ({ event }) => !!event.output,
                       },
@@ -516,7 +550,10 @@ const dmMachine = setup({
                         target: "#DM.Fail",
                       },
                     ],
-                    onError: { target: "#DM.Fail" },
+                    onError: {
+                      target: "#DM.Fail",
+                      actions: "passivity.cancel",
+                    },
                   },
                 },
                 Idle: {
@@ -525,6 +562,7 @@ const dmMachine = setup({
                     RECOGNISED: {
                       target: "NLInput",
                       actions: [
+                        "passivity.userRecognized",
                         assign({
                           lastResult: ({ event }) => event.value,
                           lastBargeIn: ({ event }) => event.bargeIn,
@@ -540,6 +578,7 @@ const dmMachine = setup({
                   entry: [
                     () => console.debug("[DM→TDM] nlInput"),
                     "resetNetworkOverheadTimer",
+                    "passivity.requestStarted",
                   ],
                   invoke: {
                     src: "nlInput",
@@ -555,6 +594,7 @@ const dmMachine = setup({
                       {
                         target: "Idle",
                         guard: ({ event }) => !!event.output.no_content,
+                        actions: "passivity.responseUnchanged",
                       },
                       {
                         target: "Idle",
@@ -568,7 +608,14 @@ const dmMachine = setup({
                             type: "tdmAssign",
                             params: ({ event }: { event: any }) => event.output,
                           },
-                          { type: "speechstate.updateAsrParams" },
+                          {
+                            type: "passivity.responseArrived",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
+                          {
+                            type: "speechstate.updateAsrParams",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
                         ],
                         guard: ({ event }) => !!event.output,
                       },
@@ -576,13 +623,17 @@ const dmMachine = setup({
                         target: "#DM.Fail",
                       },
                     ],
-                    onError: "#DM.Fail",
+                    onError: {
+                      target: "#DM.Fail",
+                      actions: "passivity.cancel",
+                    },
                   },
                 },
                 Passivity: {
                   entry: [
                     () => console.debug("[DM→TDM] passivity"),
                     "resetNetworkOverheadTimer",
+                    "passivity.requestStarted",
                   ],
                   invoke: {
                     src: "passivity",
@@ -594,18 +645,26 @@ const dmMachine = setup({
                       {
                         target: "Idle",
                         guard: ({ event }) => !!event.output.no_content,
+                        actions: "passivity.responseUnchanged",
                       },
                       {
                         target: "Idle",
                         actions: [
-                          { type: "speechstate.updateAsrParams" },
+                          {
+                            type: "tdmAssign",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
+                          {
+                            type: "passivity.responseArrived",
+                            params: ({ event }: { event: any }) => event.output,
+                          },
                           {
                             type: "debugExecutionNetworkOverhead",
                             params: ({ event }: { event: any }) =>
                               event.output.session,
                           },
                           {
-                            type: "tdmAssign",
+                            type: "speechstate.updateAsrParams",
                             params: ({ event }: { event: any }) => event.output,
                           },
                         ],
@@ -613,7 +672,10 @@ const dmMachine = setup({
                       },
                       { target: "#DM.Fail" },
                     ],
-                    onError: "#DM.Fail",
+                    onError: {
+                      target: "#DM.Fail",
+                      actions: "passivity.cancel",
+                    },
                   },
                 },
               },

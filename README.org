@@ -15,6 +15,7 @@ Events to control TalaSpeech:
         sessionObjectAdditions: {}, /** default */
         asrDefaultCompleteTimeout: 0, /** default */
         asrDefaultNoInputTimeout: 5000, /** default */
+        instructionNoInputTimeout: 30, /** default minimum wait after instruction requests, in seconds */
         ttsDefaultVoice: "en-US-DavisNeural", /** default */
         azureLanguageCredentials: undefined, /** default, not supported by TDM*/
         speechRecognitionEndpointId: undefined, /** default */
@@ -23,6 +24,11 @@ Events to control TalaSpeech:
         },
     })
   #+end_src
+
+  ~instructionNoInputTimeout~ is a minimum in seconds for positive passivity
+  timeouts on instruction requests. It defaults to 30 seconds. Backend timeout
+  values of zero (automatic continuation) and null (indefinite listening) are
+  unchanged.
 
 - ~window.TalaSpeech.send({type: "TURNPAGE", value: "1"})~ :: "turn
   page" to get to a new dialogue (in this example to page 1)
@@ -132,14 +138,18 @@ Observing state:
   rnote over TS: recognising
   Pipeline -> TS: response(nlInput)
   note left
-    if this arrives after STREAMING_DONE
-    ASR params are not updated
+    no-input timeout begins after both
+    playback and the response complete
   end note
 
 #+end_src
 
 #+RESULTS:
 [[file:docs/diagrams/stream-and-tdm.svg]]
+
+* Tests
+Run the unit tests with ~yarn test~. Run a specific test file with
+~yarn test test/passivity.test.ts~.
 
 
 
