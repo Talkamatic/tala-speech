@@ -1,11 +1,9 @@
-export const DEFAULT_INSTRUCTION_NO_INPUT_TIMEOUT_SECONDS = 30;
 export const DEFERRED_NO_INPUT_TIMEOUT_MS = 2_147_000_000;
 
 const DEFAULT_NO_INPUT_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
 interface TDMOutput {
   expected_passivity?: number | null;
-  moves?: string[];
   speech_complete_timeout?: number;
 }
 
@@ -37,38 +35,20 @@ export interface ASRParameters {
   completeTimeout: number;
 }
 
-const hasInstructionRequest = (moves: string[] = []) =>
-  moves.some((move) => move.startsWith("request("));
-
-export function noInputTimeoutMs(
-  output: TDMOutput,
-  instructionTimeoutSeconds = DEFAULT_INSTRUCTION_NO_INPUT_TIMEOUT_SECONDS,
-) {
+export function noInputTimeoutMs(output: TDMOutput) {
   const expectedPassivity = output.expected_passivity;
   if (expectedPassivity === undefined || expectedPassivity === null) {
     return DEFAULT_NO_INPUT_TIMEOUT_MS;
   }
 
   const expectedTimeoutMs = expectedPassivity * 1000;
-  if (expectedTimeoutMs <= 0 || !hasInstructionRequest(output.moves)) {
-    return expectedTimeoutMs;
-  }
-
-  const configuredInstructionTimeout = Number.isFinite(instructionTimeoutSeconds)
-    && instructionTimeoutSeconds > 0
-    ? instructionTimeoutSeconds
-    : DEFAULT_INSTRUCTION_NO_INPUT_TIMEOUT_SECONDS;
-
-  return Math.max(expectedTimeoutMs, configuredInstructionTimeout * 1000);
+  return expectedTimeoutMs;
 }
 
-export function asrParametersForResponse(
-  response: TDMResponse,
-  instructionTimeoutSeconds = DEFAULT_INSTRUCTION_NO_INPUT_TIMEOUT_SECONDS,
-): ASRParameters {
+export function asrParametersForResponse(response: TDMResponse): ASRParameters {
   const output = response.output || {};
   return {
-    noInputTimeout: noInputTimeoutMs(output, instructionTimeoutSeconds),
+    noInputTimeout: noInputTimeoutMs(output),
     hints: response.context?.asr_hints,
     completeTimeout: (output.speech_complete_timeout || 0) * 1000,
   };
@@ -77,10 +57,9 @@ export function asrParametersForResponse(
 export function updateAsrParameters(
   speechState: SpeechStateRef,
   response: TDMResponse,
-  instructionTimeoutSeconds = DEFAULT_INSTRUCTION_NO_INPUT_TIMEOUT_SECONDS,
 ) {
   const value = {
-    ...asrParametersForResponse(response, instructionTimeoutSeconds),
+    ...asrParametersForResponse(response),
     noInputTimeout: DEFERRED_NO_INPUT_TIMEOUT_MS,
   };
   const asrRef = speechState.getSnapshot().context.asrRef;
@@ -99,7 +78,6 @@ interface PassivityTurn {
   listenerReady: boolean;
   userSpeechStarted: boolean;
   speechState: SpeechStateRef;
-  instructionTimeoutSeconds: number;
   timeout?: ReturnType<typeof setTimeout>;
   asrSubscription?: { unsubscribe: () => void };
 }
@@ -118,7 +96,6 @@ export class PassivityCoordinator {
   beginPrompt(
     response: TDMResponse,
     speechState: SpeechStateRef,
-    instructionTimeoutSeconds = DEFAULT_INSTRUCTION_NO_INPUT_TIMEOUT_SECONDS,
   ) {
     this._clearTurn();
     this._latestResponse = response;
@@ -129,7 +106,6 @@ export class PassivityCoordinator {
       listenerReady: false,
       userSpeechStarted: false,
       speechState,
-      instructionTimeoutSeconds,
     };
   }
 
@@ -215,10 +191,7 @@ export class PassivityCoordinator {
       }
     });
 
-    const timeoutMs = noInputTimeoutMs(
-      turn.response.output || {},
-      turn.instructionTimeoutSeconds,
-    );
+    const timeoutMs = noInputTimeoutMs(turn.response.output || {});
     turn.timeout = setTimeout(() => {
       if (this._turn !== turn || turn.userSpeechStarted) {
         return;

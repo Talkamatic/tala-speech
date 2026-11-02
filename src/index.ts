@@ -54,8 +54,6 @@ interface TDMSettings extends Settings {
   deviceID: string;
   sessionObjectAdditions?: any;
   endpoint: string;
-  /** Minimum no-input wait after speaking an instruction request, in seconds. Defaults to 30. */
-  instructionNoInputTimeout?: number;
 }
 
 interface DMContext {
@@ -158,7 +156,6 @@ const dmMachine = setup({
       const value = updateAsrParameters(
         context.spstRef,
         response,
-        context.tdmSettings?.instructionNoInputTimeout,
       );
       console.debug("[DM] UPDATE_ASR_PARAMETERS", value);
     },
@@ -380,7 +377,6 @@ const dmMachine = setup({
                       context.passivityCoordinator?.beginPrompt(
                         context.tdmState,
                         context.spstRef,
-                        context.tdmSettings!.instructionNoInputTimeout,
                       ),
                     ({ context }) =>
                       context.spstRef.send({

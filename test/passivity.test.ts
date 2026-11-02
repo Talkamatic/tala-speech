@@ -68,7 +68,7 @@ describe("ASR passivity settings", () => {
     };
 
     expect(asrParametersForResponse(arrivingResponse)).toEqual({
-      noInputTimeout: 30_000,
+      noInputTimeout: 5_000,
       hints: ["next hint"],
       completeTimeout: 2_000,
     });
@@ -95,19 +95,19 @@ describe("ASR passivity settings", () => {
     expect(speechState.send).not.toHaveBeenCalled();
   });
 
-  it("allows a configured instruction wait longer than the default", () => {
+  it("uses the backend timeout unchanged for an instruction request", () => {
     const response = {
       context: {},
       output: {
-        expected_passivity: 45,
+        expected_passivity: 5,
         moves: ["request(next_instruction)"],
       },
     };
 
-    expect(asrParametersForResponse(response, 60).noInputTimeout).toBe(60_000);
+    expect(asrParametersForResponse(response).noInputTimeout).toBe(5_000);
   });
 
-  it("does not shorten an instruction wait that already exceeds the minimum", () => {
+  it("preserves backend instruction waits longer than five seconds", () => {
     const response = {
       context: {},
       output: {
@@ -162,7 +162,6 @@ describe("ASR passivity settings", () => {
     coordinator.beginPrompt(
       { output: { expected_passivity: 0, moves: ["answer(help(help_top))"] } },
       speechState,
-      30,
     );
     coordinator.requestStarted();
     coordinator.listenerStarted();
@@ -172,7 +171,7 @@ describe("ASR passivity settings", () => {
     expect(asrRef.send).not.toHaveBeenCalledWith({ type: "NOINPUT" });
 
     coordinator.responseArrived(instructionResponse);
-    vi.advanceTimersByTime(29_999);
+    vi.advanceTimersByTime(4_999);
     expect(asrRef.send).not.toHaveBeenCalledWith({ type: "NOINPUT" });
     vi.advanceTimersByTime(1);
     expect(asrRef.send).toHaveBeenCalledWith({ type: "NOINPUT" });
@@ -192,7 +191,7 @@ describe("ASR passivity settings", () => {
     expect(asrRef.send).not.toHaveBeenCalledWith({ type: "NOINPUT" });
 
     coordinator.speechComplete();
-    vi.advanceTimersByTime(29_999);
+    vi.advanceTimersByTime(4_999);
     expect(asrRef.send).not.toHaveBeenCalledWith({ type: "NOINPUT" });
     vi.advanceTimersByTime(1);
     expect(asrRef.send).toHaveBeenCalledWith({ type: "NOINPUT" });
@@ -203,7 +202,7 @@ describe("ASR passivity settings", () => {
     const { speechState, asrRef, setAsrState } = givenSpeechState();
     const coordinator = new PassivityCoordinator();
 
-    coordinator.beginPrompt(instructionResponse, speechState, 30);
+    coordinator.beginPrompt(instructionResponse, speechState);
     coordinator.requestStarted();
     coordinator.listenerStarted();
     coordinator.speechComplete();
