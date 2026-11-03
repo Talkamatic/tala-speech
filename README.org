@@ -132,14 +132,18 @@ Observing state:
   rnote over TS: recognising
   Pipeline -> TS: response(nlInput)
   note left
-    if this arrives after STREAMING_DONE
-    ASR params are not updated
+    no-input timeout begins after both playback and the
+    response complete, using the backend's passivity value
   end note
 
 #+end_src
 
 #+RESULTS:
 [[file:docs/diagrams/stream-and-tdm.svg]]
+
+* Tests
+Run the unit tests with ~yarn test~. Run a specific test file with
+~yarn test test/passivity.test.ts~.
 
 
 
