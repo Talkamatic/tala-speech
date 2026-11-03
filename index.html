@@ -11,17 +11,10 @@
   <body>
     <div id="tala-speech"></div>
     <script type="module">
-      /** (optional: get dialogue JSON) */
-      const dialogueJson = await window.TalaSpeechRenderer.getDialogueJson(
-        "" /** URL goes here */,
-      );
-
       window.TalaSpeechRenderer.renderTalaSpeech(
         {
           deviceID: "vlad-test-voice-stream" /** required */,
-          endpoint:
-            `` /** required, <endpoint_URL> */ +
-            `${JSON.parse(dialogueJson.offer).offer_id}`,
+          endpoint: `https://production-handler-ordstrom.azurewebsites.net/interact/8d7cd0da-0534-43db-a691-1fd7329393c9`,
           azureCredentials: `` /** required, <azure credentials or URL> */,
           azureRegion: "" /** required, e.g. swedencentral */,
           locale: "en-US" /** default */,
@@ -30,7 +23,7 @@
           ttsDefaultVoice: "en-US-EchoMultilingualNeural" /** default */,
           azureLanguageCredentials: undefined /** not supported by TDM */,
           speechRecognitionEndpointId: undefined /** default */,
-          sessionObjectAdditions: JSON.parse(dialogueJson.offer),
+          // sessionObjectAdditions: JSON.parse(dialogueJson.offer),
         },
         "" /** page, e.g. chapter_1 */,
         document.getElementById("tala-speech"),
