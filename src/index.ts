@@ -21,6 +21,7 @@ import {
   mountTalaSpeechTemplate,
 } from "./talaSpeechView";
 import type { TalaSpeechTemplate } from "./talaSpeechView";
+import { calculatePassivity, DEFERRED_NO_INPUT_TIMEOUT_MS } from "./passivity";
 export type { TalaSpeechTemplate };
 export type {
   TalaSpeechTemplateActions,
@@ -60,6 +61,7 @@ interface DMContext {
   lastBargeIn?: boolean;
   avatarName?: string;
   executionStartTime?: number;
+  lastNoInputTimeout?: number;
 }
 
 type DMEvent =
@@ -144,14 +146,18 @@ const dmMachine = setup({
   actions: {
     tdmAssign: assign((_, params: any) => {
       console.debug("[tdmState]", params);
-      return { tdmState: params };
+      return {
+        tdmState: params,
+        lastNoInputTimeout: calculatePassivity(
+          params.output.expected_passivity,
+        ),
+      };
     }),
     "speechstate.updateAsrParams": ({ context }) => {
       const value = {
-        noInputTimeout:
-          (context.tdmState.output.expected_passivity
-            ? context.tdmState.output.expected_passivity * 1000
-            : context.tdmState.output.expected_passivity) ?? 1000 * 3600 * 24,
+        noInputTimeout: calculatePassivity(
+          context.tdmState.output.expected_passivity,
+        ),
         hints: context.tdmState.context.asr_hints,
         completeTimeout: context.tdmState.output.speech_complete_timeout * 1000,
       };
@@ -365,11 +371,8 @@ const dmMachine = setup({
                           hints: context.tdmState.context.asr_hints,
                           /** 0 vs null (null = ∞)*/
                           noInputTimeout:
-                            (context.tdmState.output.expected_passivity
-                              ? context.tdmState.output.expected_passivity *
-                                1000
-                              : context.tdmState.output.expected_passivity) ??
-                            1000 * 3600 * 24,
+                            context.lastNoInputTimeout ||
+                            DEFERRED_NO_INPUT_TIMEOUT_MS,
                           completeTimeout:
                             context.tdmState.output.speech_complete_timeout *
                             1000,
@@ -458,10 +461,8 @@ const dmMachine = setup({
                       value: {
                         /** 0 vs null (null = ∞)*/
                         noInputTimeout:
-                          (context.tdmState.output.expected_passivity
-                            ? context.tdmState.output.expected_passivity * 1000
-                            : context.tdmState.output.expected_passivity) ??
-                          1000 * 3600 * 24,
+                          context.lastNoInputTimeout ||
+                          DEFERRED_NO_INPUT_TIMEOUT_MS,
                         hints: (context.tdmState.context || {}).asr_hints,
                         completeTimeout:
                           (context.tdmState.output || {})
@@ -608,6 +609,7 @@ const dmMachine = setup({
                             type: "tdmAssign",
                             params: ({ event }: { event: any }) => event.output,
                           },
+                          { type: "speechstate.updateAsrParams" },
                         ],
                         guard: ({ event }) => !!event.output,
                       },
