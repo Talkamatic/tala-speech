@@ -131,10 +131,6 @@ Observing state:
   SSE -> TS: STREAMING_DONE
   rnote over TS: recognising
   Pipeline -> TS: response(nlInput)
-  note left
-    if this arrives after STREAMING_DONE
-    ASR params are not updated
-  end note
 
 #+end_src
 
